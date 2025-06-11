@@ -5,6 +5,7 @@ export interface User {
   passwordHash: string;
   displayName?: string;
   status?: string;
+  code: string;
 }
 
 export interface Message {
@@ -21,8 +22,8 @@ class RaynetDB extends Dexie {
   messages!: Table<Message, number>;
   constructor() {
     super('raynet');
-    this.version(1).stores({
-      users: '&username,passwordHash',
+    this.version(2).stores({
+      users: '&username,code,passwordHash',
       messages: '++id,chatId,from,to,timestamp',
     });
   }

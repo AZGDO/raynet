@@ -11,10 +11,12 @@ export default function Landing() {
   return (
     <div className="h-screen flex flex-col items-center justify-center space-y-4">
       <h1 className="font-bold text-5xl font-recursive text-ray-violet">raynet</h1>
-      <div className="space-x-4">
-        <Button onClick={() => setModal('login')}>Register / Login</Button>
-        <Button onClick={() => setGuestMode(true)} className="bg-photon-teal">Continue as Guest</Button>
-      </div>
+      {!modal && !guestMode && (
+        <div className="space-x-4">
+          <Button onClick={() => setModal('login')}>Register / Login</Button>
+          <Button onClick={() => setGuestMode(true)} className="bg-photon-teal">Continue as Guest</Button>
+        </div>
+      )}
       <AnimatePresence>
         {modal && <AuthModal mode={modal} onClose={() => setModal(null)} />}
         {guestMode && (

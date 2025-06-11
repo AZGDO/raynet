@@ -1,18 +1,20 @@
 export class Discovery {
   private channel = new BroadcastChannel('raynet-discovery');
   private username: string | null = null;
+  private code: string | null = null;
   constructor() {
     this.channel.onmessage = (ev) => {
       const data = ev.data as any;
-      if (data.type === 'query' && this.username && data.username === this.username) {
+      if (data.type === 'query' && this.code && data.code === this.code) {
         this.channel.postMessage({ type: 'found', to: data.id, username: this.username });
       }
     };
   }
-  advertise(username: string) {
+  advertise(username: string, code: string) {
     this.username = username;
+    this.code = code;
   }
-  async query(username: string): Promise<string | null> {
+  async query(code: string): Promise<string | null> {
     const id = crypto.randomUUID();
     return new Promise((resolve) => {
       const handler = (ev: MessageEvent) => {
@@ -23,7 +25,7 @@ export class Discovery {
         }
       };
       this.channel.addEventListener('message', handler);
-      this.channel.postMessage({ type: 'query', username, id });
+      this.channel.postMessage({ type: 'query', code, id });
       setTimeout(() => {
         this.channel.removeEventListener('message', handler);
         resolve(null);

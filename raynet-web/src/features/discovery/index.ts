@@ -10,12 +10,12 @@ export function useDiscovery() {
 
   useEffect(() => {
     if (state.user) {
-      discovery.advertise(state.user);
+      discovery.advertise(state.user, state.code);
     }
-  }, [state.user]);
+  }, [state.user, state.code]);
 
-  async function find(username: string) {
-    const res = await discovery.query(username);
+  async function find(code: string) {
+    const res = await discovery.query(code);
     setFound(res);
     return res;
   }

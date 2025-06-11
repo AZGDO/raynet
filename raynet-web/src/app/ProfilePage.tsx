@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../features/auth';
 import Input from '../components/Input';
@@ -8,6 +8,13 @@ export default function ProfilePage({ open, onClose }: { open: boolean; onClose(
   const { state, updateProfile } = useAuth();
   const [displayName, setDisplayName] = useState(state.displayName);
   const [status, setStatus] = useState(state.status);
+
+  useEffect(() => {
+    if (open) {
+      setDisplayName(state.displayName);
+      setStatus(state.status);
+    }
+  }, [open, state.displayName, state.status]);
 
   async function save() {
     await updateProfile(displayName, status);
@@ -34,6 +41,7 @@ export default function ProfilePage({ open, onClose }: { open: boolean; onClose(
             <h2 className="text-lg font-semibold mb-2">Profile Info</h2>
             <div className="space-y-2">
               <div className="text-sm">Username: {state.user}</div>
+              <div className="text-xs font-mono text-gray-500">Code: {state.code}</div>
               <Input value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="Display Name" maxLength={30} />
               <textarea
                 className="w-full rounded px-2 py-1 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 bg-gray-100 dark:bg-gray-800 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-photon-teal transition-all duration-180 ease-[cubic-bezier(0.25,0.1,0.25,1)]"

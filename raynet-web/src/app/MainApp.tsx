@@ -31,12 +31,15 @@ export default function MainApp() {
       </header>
       <div className="flex flex-1 overflow-hidden">
         <aside className="hidden md:block w-64 border-r p-4 space-y-4">
-          <ProfileCard username={state.user!} displayName={state.displayName} status={state.status} onEdit={() => setShowProfile(true)} />
+          <ProfileCard username={state.user!} displayName={state.displayName} status={state.status} code={state.code} onEdit={() => setShowProfile(true)} />
           <SearchUser onSelect={setPeer} />
         </aside>
         <main className="flex-1 flex flex-col">
           <div className="p-2 border-b md:hidden">
-            <ProfileCard username={state.user!} displayName={state.displayName} status={state.status} onEdit={() => setShowProfile(true)} />
+            <ProfileCard username={state.user!} displayName={state.displayName} status={state.status} code={state.code} onEdit={() => setShowProfile(true)} />
+            <div className="mt-2">
+              <SearchUser onSelect={setPeer} />
+            </div>
           </div>
           <AnimatePresence>
             {peer && (
