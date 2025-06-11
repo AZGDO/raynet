@@ -58,7 +58,7 @@ export default function ProfilePage({ open, onClose }: { open: boolean; onClose(
               <div className="text-xs font-mono text-gray-500">Code: {state.code}</div>
               <Input value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="Display Name" maxLength={30} />
               <textarea
-                className="w-full rounded px-2 py-1 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 bg-gray-100 dark:bg-gray-800 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-photon-teal transition-all duration-180 ease-[cubic-bezier(0.25,0.1,0.25,1)]"
+                className="w-full rounded px-2 py-1 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 bg-gray-100 dark:bg-gray-800 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-600 transition-all duration-180 ease-[cubic-bezier(0.25,0.1,0.25,1)]"
                 value={status}
                 onChange={e => setStatus(e.target.value)}
                 placeholder="Status message"
@@ -66,7 +66,7 @@ export default function ProfilePage({ open, onClose }: { open: boolean; onClose(
               />
             </div>
             <div className="mt-4 flex justify-between items-center">
-              <button className="text-sm text-ray-violet underline" onClick={downloadFile}>Download .ray</button>
+              <button className="text-sm text-black dark:text-white underline" onClick={downloadFile}>Download .ray</button>
               <div className="space-x-2">
                 <Button onClick={onClose} className="bg-gray-300 text-black dark:bg-gray-700 dark:text-white px-3 py-1">Cancel</Button>
                 <Button onClick={save} disabled={!displayName}>Save</Button>

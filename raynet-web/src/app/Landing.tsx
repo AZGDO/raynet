@@ -10,11 +10,11 @@ export default function Landing() {
   const [guestMode, setGuestMode] = useState(false);
   return (
     <div className="h-screen flex flex-col items-center justify-center space-y-4">
-      <h1 className="font-bold text-5xl font-recursive text-ray-violet">raynet</h1>
+      <h1 className="font-bold text-5xl font-recursive text-black dark:text-white">raynet</h1>
       {!modal && !guestMode && (
         <div className="space-x-4">
           <Button onClick={() => setModal('register')}>Register</Button>
-          <Button onClick={() => setModal('login')} className="bg-photon-teal">Login</Button>
+          <Button onClick={() => setModal('login')} className="bg-gray-700">Login</Button>
           <Button onClick={() => setGuestMode(true)} className="bg-gray-300 text-black dark:bg-gray-700 dark:text-white">Guest</Button>
         </div>
       )}
