@@ -3,7 +3,7 @@ import Input from '../../components/Input';
 import Button from '../../components/Button';
 import { useDiscovery } from './index';
 
-export default function SearchUser({ onSelect }: { onSelect(name: string): void }) {
+export default function SearchUser({ onRequest }: { onRequest(name: string): void }) {
   const { found, find } = useDiscovery();
   const [query, setQuery] = useState('');
 
@@ -26,7 +26,7 @@ export default function SearchUser({ onSelect }: { onSelect(name: string): void 
               <span className="font-medium">{found}</span>
               <span className="text-xs font-mono text-gray-500">{query}</span>
             </span>
-            <Button whileHover={{ scale: 1.05 }} onClick={() => onSelect(found)} className="px-2 py-1">Connect</Button>
+            <Button whileHover={{ scale: 1.05 }} onClick={() => onRequest(found)} className="px-2 py-1">Connect</Button>
           </div>
         </div>
       )}

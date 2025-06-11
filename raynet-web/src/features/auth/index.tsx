@@ -1,7 +1,7 @@
 import { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import { db } from './store';
-import { hashPassword } from '../../lib/crypto';
 import { generateCode } from '../../lib/code';
+import { createRayFile, readRayFile } from '../../lib/rayfile';
 
 interface AuthState {
   user: string | null;
@@ -32,7 +32,7 @@ function reducer(state: AuthState, action: Action): AuthState {
 const AuthContext = createContext<{
   state: AuthState;
   register(username: string, password: string): Promise<boolean>;
-  login(username: string, password: string): Promise<boolean>;
+  login(file: File, password: string): Promise<boolean>;
   guest(username: string): void;
   updateProfile(displayName: string, status: string): Promise<void>;
   logout(): void;
@@ -50,19 +50,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function register(username: string, password: string) {
     const existing = await db.users.get(username);
     if (existing) return false;
-    const hash = await hashPassword(password, username);
     const code = generateCode();
-    await db.users.put({ username, passwordHash: hash, displayName: username, status: "Hey there! I'm on Raynet.", code });
+    await db.users.put({ username, displayName: username, status: "Hey there! I'm on Raynet.", code });
+    const blob = await createRayFile(username, password, username, "Hey there! I'm on Raynet.", code);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${username}.ray`;
+    a.click();
+    URL.revokeObjectURL(url);
     dispatch({ type: 'login', user: username, displayName: username, status: "Hey there! I'm on Raynet.", code });
     return true;
   }
 
-  async function login(username: string, password: string) {
-    const user = await db.users.get(username);
-    if (!user) return false;
-    const hash = await hashPassword(password, username);
-    if (hash !== user.passwordHash) return false;
-    dispatch({ type: 'login', user: username, displayName: user.displayName ?? username, status: user.status ?? "Hey there! I'm on Raynet.", code: user.code });
+  async function login(file: File, password: string) {
+    const data = await readRayFile(await file.arrayBuffer(), password);
+    if (!data) return false;
+    const { username, displayName, status, code } = data;
+    const existing = await db.users.get(username);
+    if (!existing) await db.users.put({ username, displayName, status, code });
+    dispatch({ type: 'login', user: username, displayName, status, code });
     return true;
   }
 

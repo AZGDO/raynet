@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useAuth } from '../features/auth';
-import { useDiscovery, SearchUser } from '../features/discovery';
+import { SearchUser } from '../features/discovery';
 import { useChat } from '../features/chat';
+import RequestList from '../features/requests';
+import { sendConnectRequest } from '../lib/peer';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import ProfileCard from '../components/ProfileCard';
@@ -12,7 +14,6 @@ export default function MainApp() {
   const { state, logout } = useAuth();
   const [peer, setPeer] = useState<string | null>(null);
   const [showProfile, setShowProfile] = useState(false);
-  const { find } = useDiscovery();
   const chat = useChat(peer);
   const [input, setInput] = useState('');
 
@@ -32,13 +33,15 @@ export default function MainApp() {
       <div className="flex flex-1 overflow-hidden">
         <aside className="hidden md:block w-64 border-r p-4 space-y-4">
           <ProfileCard username={state.user!} displayName={state.displayName} status={state.status} code={state.code} onEdit={() => setShowProfile(true)} />
-          <SearchUser onSelect={setPeer} />
+          <RequestList onSelect={setPeer} />
+          <SearchUser onRequest={(name) => sendConnectRequest(state.user!, name)} />
         </aside>
         <main className="flex-1 flex flex-col">
           <div className="p-2 border-b md:hidden">
             <ProfileCard username={state.user!} displayName={state.displayName} status={state.status} code={state.code} onEdit={() => setShowProfile(true)} />
-            <div className="mt-2">
-              <SearchUser onSelect={setPeer} />
+            <div className="mt-2 space-y-2">
+              <RequestList onSelect={setPeer} />
+              <SearchUser onRequest={(name) => sendConnectRequest(state.user!, name)} />
             </div>
           </div>
           <AnimatePresence>

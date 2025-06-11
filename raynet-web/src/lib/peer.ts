@@ -34,6 +34,38 @@ export class Discovery {
   }
 }
 
+const requestChannel = new BroadcastChannel('raynet-requests');
+
+export function sendConnectRequest(from: string, to: string) {
+  requestChannel.postMessage({ type: 'request', from, to });
+}
+
+export function sendAcceptRequest(from: string, to: string) {
+  requestChannel.postMessage({ type: 'accept', from, to });
+}
+
+export function onConnectRequest(username: string, handler: (from: string) => void) {
+  const listener = (ev: MessageEvent) => {
+    const data = ev.data as any;
+    if (data.type === 'request' && data.to === username) {
+      handler(data.from);
+    }
+  };
+  requestChannel.addEventListener('message', listener);
+  return () => requestChannel.removeEventListener('message', listener);
+}
+
+export function onAccept(username: string, handler: (from: string) => void) {
+  const listener = (ev: MessageEvent) => {
+    const data = ev.data as any;
+    if (data.type === 'accept' && data.to === username) {
+      handler(data.from);
+    }
+  };
+  requestChannel.addEventListener('message', listener);
+  return () => requestChannel.removeEventListener('message', listener);
+}
+
 export function openChatChannel(a: string, b: string) {
   const name = `chat-${[a, b].sort().join('-')}`;
   const channel = new BroadcastChannel(name);

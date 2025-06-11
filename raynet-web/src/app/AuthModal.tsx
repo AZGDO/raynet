@@ -11,17 +11,20 @@ export default function AuthModal({ mode, onClose }: { mode: 'login' | 'register
   const navigate = useNavigate();
   const { login, register } = useAuth();
   const [username, setUsername] = useState('');
+  const [file, setFile] = useState<File | null>(null);
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const valid = username && password && (mode === 'login' || password === confirm);
+  const valid = mode === 'login'
+    ? file && password
+    : username && password && password === confirm;
 
   async function submit() {
     if (!valid) return;
     setLoading(true);
     const ok = mode === 'login'
-      ? await login(username, password)
+      ? await login(file!, password)
       : await register(username, password);
     setLoading(false);
     if (ok) { onClose(); navigate("/app"); }
@@ -34,7 +37,11 @@ export default function AuthModal({ mode, onClose }: { mode: 'login' | 'register
         <motion.div className="bg-white dark:bg-gray-800 w-full p-4 rounded-t-xl" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={spring}>
           <h2 className="text-xl mb-2 capitalize">{mode}</h2>
           <div className="space-y-2">
-            <Input placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} />
+            {mode === 'register' ? (
+              <Input placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} />
+            ) : (
+              <Input type="file" accept=".ray" onChange={e => setFile(e.target.files?.[0] || null)} />
+            )}
             <Input placeholder="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} />
             {mode === 'register' && (
               <Input placeholder="Confirm" type="password" value={confirm} onChange={e => setConfirm(e.target.value)} />
