@@ -100,7 +100,7 @@ export async function readRayFile(buffer: ArrayBuffer, password: string): Promis
 
   const keyMaterial = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']);
   const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' }, keyMaterial, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
-  const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: nonce, additionalData: undefined, tagLength: 128 }, key, concat(cipher, tag));
+  const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: nonce }, key, concat(cipher, tag));
   const plain = new Uint8Array(decrypted);
 
   const sections = header.sections as { name: string; length: number }[];

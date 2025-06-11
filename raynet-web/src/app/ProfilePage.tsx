@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../features/auth';
 import Input from '../components/Input';
 import Button from '../components/Button';
+import { createRayFile } from '../lib/rayfile';
 
 export default function ProfilePage({ open, onClose }: { open: boolean; onClose(): void }) {
   const { state, updateProfile } = useAuth();
@@ -19,6 +20,19 @@ export default function ProfilePage({ open, onClose }: { open: boolean; onClose(
   async function save() {
     await updateProfile(displayName, status);
     onClose();
+  }
+
+  async function downloadFile() {
+    if (!state.user) return;
+    const pwd = prompt('Enter password to export file');
+    if (!pwd) return;
+    const blob = await createRayFile(state.user, pwd, displayName, status, state.code);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${state.user}.ray`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   return (
@@ -51,9 +65,12 @@ export default function ProfilePage({ open, onClose }: { open: boolean; onClose(
                 maxLength={120}
               />
             </div>
-            <div className="mt-4 flex justify-end space-x-2">
-              <Button onClick={onClose} className="bg-gray-300 text-black dark:bg-gray-700 dark:text-white px-3 py-1">Cancel</Button>
-              <Button onClick={save} disabled={!displayName}>Save</Button>
+            <div className="mt-4 flex justify-between items-center">
+              <button className="text-sm text-ray-violet underline" onClick={downloadFile}>Download .ray</button>
+              <div className="space-x-2">
+                <Button onClick={onClose} className="bg-gray-300 text-black dark:bg-gray-700 dark:text-white px-3 py-1">Cancel</Button>
+                <Button onClick={save} disabled={!displayName}>Save</Button>
+              </div>
             </div>
           </motion.div>
         </motion.div>
