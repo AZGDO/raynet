@@ -20,7 +20,7 @@ export default function SearchUser({ onRequest }: { onRequest(name: string): voi
         onChange={(e) => handleChange(e.target.value)}
       />
       {found && (
-        <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-gray-800 border rounded shadow">
+        <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-gray-800 border rounded shadow z-10">
           <div className="flex items-center justify-between p-2 hover:bg-gray-100 dark:hover:bg-gray-700 transform transition-transform duration-150 hover:-translate-y-0.5">
             <span className="flex flex-col">
               <span className="font-medium">{found}</span>

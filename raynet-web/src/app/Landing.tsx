@@ -13,8 +13,9 @@ export default function Landing() {
       <h1 className="font-bold text-5xl font-recursive text-ray-violet">raynet</h1>
       {!modal && !guestMode && (
         <div className="space-x-4">
-          <Button onClick={() => setModal('login')}>Register / Login</Button>
-          <Button onClick={() => setGuestMode(true)} className="bg-photon-teal">Continue as Guest</Button>
+          <Button onClick={() => setModal('register')}>Register</Button>
+          <Button onClick={() => setModal('login')} className="bg-photon-teal">Login</Button>
+          <Button onClick={() => setGuestMode(true)} className="bg-gray-300 text-black dark:bg-gray-700 dark:text-white">Guest</Button>
         </div>
       )}
       <AnimatePresence>
