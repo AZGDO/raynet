@@ -36,15 +36,22 @@ export class Discovery {
 
 const requestChannel = new BroadcastChannel('raynet-requests');
 
-export function sendConnectRequest(from: string, to: string) {
+export interface UserProfile {
+  username: string;
+  displayName: string;
+  status: string;
+  code: string;
+}
+
+export function sendConnectRequest(from: UserProfile, to: string) {
   requestChannel.postMessage({ type: 'request', from, to });
 }
 
-export function sendAcceptRequest(from: string, to: string) {
+export function sendAcceptRequest(from: UserProfile, to: string) {
   requestChannel.postMessage({ type: 'accept', from, to });
 }
 
-export function onConnectRequest(username: string, handler: (from: string) => void) {
+export function onConnectRequest(username: string, handler: (from: UserProfile) => void) {
   const listener = (ev: MessageEvent) => {
     const data = ev.data as any;
     if (data.type === 'request' && data.to === username) {
@@ -55,7 +62,7 @@ export function onConnectRequest(username: string, handler: (from: string) => vo
   return () => requestChannel.removeEventListener('message', listener);
 }
 
-export function onAccept(username: string, handler: (from: string) => void) {
+export function onAccept(username: string, handler: (from: UserProfile) => void) {
   const listener = (ev: MessageEvent) => {
     const data = ev.data as any;
     if (data.type === 'accept' && data.to === username) {

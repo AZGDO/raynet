@@ -16,14 +16,21 @@ export interface Message {
   timestamp: number;
 }
 
+export interface RayFileData {
+  username: string;
+  data: ArrayBuffer;
+}
+
 class RaynetDB extends Dexie {
   users!: Table<User, string>;
   messages!: Table<Message, number>;
+  rayfiles!: Table<RayFileData, string>;
   constructor() {
     super('raynet');
-    this.version(3).stores({
+    this.version(4).stores({
       users: '&username,code',
       messages: '++id,chatId,from,to,timestamp',
+      rayfiles: '&username'
     });
   }
 }

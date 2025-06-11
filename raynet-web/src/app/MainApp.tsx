@@ -1,21 +1,30 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../features/auth';
 import { SearchUser } from '../features/discovery';
 import { useChat } from '../features/chat';
 import RequestList from '../features/requests';
 import { sendConnectRequest } from '../lib/peer';
+import { db } from '../features/auth/store';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import ProfileCard from '../components/ProfileCard';
 import ProfilePage from './ProfilePage';
+import PeerProfile from './PeerProfile';
 import { AnimatePresence, motion } from 'framer-motion';
 
 export default function MainApp() {
   const { state, logout } = useAuth();
   const [peer, setPeer] = useState<string | null>(null);
   const [showProfile, setShowProfile] = useState(false);
+  const [viewUser, setViewUser] = useState<string | null>(null);
+  const [peerDisplay, setPeerDisplay] = useState<string>('');
   const chat = useChat(peer);
   const [input, setInput] = useState('');
+
+  useEffect(() => {
+    if (!peer) return;
+    db.users.get(peer).then(u => setPeerDisplay(u?.displayName || peer));
+  }, [peer]);
 
   const handleSend = () => {
     if (chat && input) {
@@ -33,15 +42,15 @@ export default function MainApp() {
       <div className="flex flex-1 overflow-hidden">
         <aside className="hidden md:block w-64 border-r p-4 space-y-4">
           <ProfileCard username={state.user!} displayName={state.displayName} status={state.status} code={state.code} onEdit={() => setShowProfile(true)} />
-          <RequestList onSelect={setPeer} />
-          <SearchUser onRequest={(name) => sendConnectRequest(state.user!, name)} />
+          <RequestList onSelect={setPeer} onView={setViewUser} />
+          <SearchUser onRequest={(name) => sendConnectRequest({ username: state.user!, displayName: state.displayName, status: state.status, code: state.code }, name)} />
         </aside>
         <main className="flex-1 flex flex-col">
           <div className="p-2 border-b md:hidden">
             <ProfileCard username={state.user!} displayName={state.displayName} status={state.status} code={state.code} onEdit={() => setShowProfile(true)} />
             <div className="mt-2 space-y-2">
-              <RequestList onSelect={setPeer} />
-              <SearchUser onRequest={(name) => sendConnectRequest(state.user!, name)} />
+              <RequestList onSelect={setPeer} onView={setViewUser} />
+              <SearchUser onRequest={(name) => sendConnectRequest({ username: state.user!, displayName: state.displayName, status: state.status, code: state.code }, name)} />
             </div>
           </div>
           <AnimatePresence>
@@ -61,6 +70,13 @@ export default function MainApp() {
           </AnimatePresence>
           {peer ? (
             <>
+              <div className="border-b p-2 flex items-center justify-between">
+                <div className="cursor-pointer" onClick={() => setViewUser(peer!)}>
+                  <div className="font-medium">{peerDisplay}</div>
+                  <div className="text-xs text-gray-500">{peer}</div>
+                </div>
+                <Button onClick={() => setPeer(null)} className="hidden md:block bg-gray-300 text-black dark:bg-gray-700 dark:text-white px-2 py-1">Close</Button>
+              </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-2">
                 {chat.messages.map(m => (
                   <div key={m.timestamp} className={m.from === state.user ? 'text-right' : 'text-left'}>
@@ -79,6 +95,7 @@ export default function MainApp() {
         </main>
       </div>
       <ProfilePage open={showProfile} onClose={() => setShowProfile(false)} />
+      <PeerProfile open={!!viewUser} username={viewUser || ''} onClose={() => setViewUser(null)} />
     </div>
   );
 }

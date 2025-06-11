@@ -2,6 +2,7 @@ import { createContext, useContext, useReducer, useEffect, ReactNode } from 'rea
 import { db } from './store';
 import { generateCode } from '../../lib/code';
 import { createRayFile, readRayFile } from '../../lib/rayfile';
+import { setCookie, getCookie, deleteCookie } from '../../lib/cookies';
 
 interface AuthState {
   user: string | null;
@@ -47,12 +48,33 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, { user: null, guest: false, displayName: '', status: '', code: '' });
 
+  useEffect(() => {
+    const saved = getCookie('raynetCred');
+    if (!saved) return;
+    (async () => {
+      try {
+        const { username, password } = JSON.parse(atob(saved));
+        const file = await db.rayfiles.get(username);
+        if (file) {
+          const data = await readRayFile(file.data, password);
+          if (data) {
+            dispatch({ type: 'login', user: data.username, displayName: data.displayName, status: data.status, code: data.code });
+          }
+        }
+      } catch {
+        deleteCookie('raynetCred');
+      }
+    })();
+  }, []);
+
   async function register(username: string, password: string) {
     const existing = await db.users.get(username);
     if (existing) return false;
     const code = generateCode();
     await db.users.put({ username, displayName: username, status: "Hey there! I'm on Raynet.", code });
     const blob = await createRayFile(username, password, username, "Hey there! I'm on Raynet.", code);
+    await db.rayfiles.put({ username, data: await blob.arrayBuffer() });
+    setCookie('raynetCred', btoa(JSON.stringify({ username, password })));
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -64,11 +86,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function login(file: File, password: string) {
-    const data = await readRayFile(await file.arrayBuffer(), password);
+    const buf = await file.arrayBuffer();
+    const data = await readRayFile(buf, password);
     if (!data) return false;
     const { username, displayName, status, code } = data;
     const existing = await db.users.get(username);
     if (!existing) await db.users.put({ username, displayName, status, code });
+    await db.rayfiles.put({ username, data: buf });
+    setCookie('raynetCred', btoa(JSON.stringify({ username, password })));
     dispatch({ type: 'login', user: username, displayName, status, code });
     return true;
   }
@@ -88,6 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   function logout() {
     dispatch({ type: 'logout' });
+    deleteCookie('raynetCred');
   }
 
   return (
