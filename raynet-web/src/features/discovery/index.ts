@@ -22,3 +22,5 @@ export function useDiscovery() {
 
   return { found, find };
 }
+
+export { default as SearchUser } from './SearchUser';

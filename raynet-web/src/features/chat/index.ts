@@ -4,12 +4,13 @@ import { openChatChannel } from '../../lib/peer';
 import { useAuth } from '../auth';
 import { Message } from '../auth/store';
 
-export function useChat(peer: string) {
+export function useChat(peer: string | null) {
   const { state } = useAuth();
   const username = state.user!;
   const [messages, setMessages] = useState<Message[]>([]);
 
   useEffect(() => {
+    if (!peer) return;
     const chatId = `chat-${[username, peer].sort().join('-')}`;
     const channel = openChatChannel(username, peer);
     db.messages.where('chatId').equals(chatId).toArray().then(setMessages);
@@ -22,6 +23,7 @@ export function useChat(peer: string) {
   }, [username, peer]);
 
   function send(text: string) {
+    if (!peer) return;
     const msg: Message = {
       chatId: `chat-${[username, peer].sort().join('-')}`,
       from: username,
