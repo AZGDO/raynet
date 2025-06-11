@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  .font-recursive { font-family: "Recursive", cursive; }
+}
 :root {
   --color-surface-light: #F7F7FA;
   --color-high-contrast: #1E1E1E;
