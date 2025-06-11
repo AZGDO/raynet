@@ -3,6 +3,8 @@ import Dexie, { Table } from 'dexie';
 export interface User {
   username: string;
   passwordHash: string;
+  displayName?: string;
+  status?: string;
 }
 
 export interface Message {

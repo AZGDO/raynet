@@ -37,3 +37,23 @@ export function openChatChannel(a: string, b: string) {
   const channel = new BroadcastChannel(name);
   return channel;
 }
+
+export interface Peer {
+  username: string;
+  channel: BroadcastChannel;
+}
+
+export async function connect(local: string, remote: string): Promise<Peer> {
+  const channel = openChatChannel(local, remote);
+  return { username: remote, channel };
+}
+
+export async function sendMessage(peer: Peer, text: string, from: string): Promise<void> {
+  peer.channel.postMessage({ from, to: peer.username, text, timestamp: Date.now() });
+}
+
+export function onMessage(peer: Peer, handler: (msg: any) => void) {
+  const listener = (ev: MessageEvent) => handler(ev.data);
+  peer.channel.addEventListener('message', listener);
+  return () => peer.channel.removeEventListener('message', listener);
+}

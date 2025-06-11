@@ -21,9 +21,9 @@ export default function SearchUser({ onSelect }: { onSelect(name: string): void 
       />
       {found && (
         <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-gray-800 border rounded shadow">
-          <div className="flex items-center justify-between p-2 hover:bg-gray-100 dark:hover:bg-gray-700">
+          <div className="flex items-center justify-between p-2 hover:bg-gray-100 dark:hover:bg-gray-700 transform transition-transform duration-150 hover:-translate-y-0.5">
             <span>{found}</span>
-            <Button onClick={() => onSelect(found)} className="px-2 py-1">Connect</Button>
+            <Button whileHover={{ scale: 1.05 }} onClick={() => onSelect(found)} className="px-2 py-1">Connect</Button>
           </div>
         </div>
       )}

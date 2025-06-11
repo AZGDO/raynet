@@ -1,6 +1,6 @@
 export default function Avatar({ username }: { username: string }) {
   return (
-    <div className="w-8 h-8 rounded-full bg-photon-teal text-white flex items-center justify-center uppercase">
+    <div className="w-12 h-12 rounded-full bg-photon-teal text-ray-violet flex items-center justify-center uppercase font-bold">
       {username[0]}
     </div>
   );

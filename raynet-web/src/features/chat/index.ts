@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { db } from '../auth/store';
-import { openChatChannel } from '../../lib/peer';
+import { connect, sendMessage, onMessage, Peer } from '../../lib/peer';
 import { useAuth } from '../auth';
 import { Message } from '../auth/store';
 
@@ -9,17 +9,25 @@ export function useChat(peer: string | null) {
   const username = state.user!;
   const [messages, setMessages] = useState<Message[]>([]);
 
+  const connRef = useRef<Peer | null>(null);
+
   useEffect(() => {
     if (!peer) return;
     const chatId = `chat-${[username, peer].sort().join('-')}`;
-    const channel = openChatChannel(username, peer);
-    db.messages.where('chatId').equals(chatId).toArray().then(setMessages);
-    channel.onmessage = (ev) => {
-      const msg = ev.data as Message;
-      setMessages((m) => [...m, msg]);
-      db.messages.add(msg);
+    let stop: (() => void) | null = null;
+    connect(username, peer).then(c => {
+      connRef.current = c;
+      db.messages.where('chatId').equals(chatId).toArray().then(setMessages);
+      stop = onMessage(c, (msg: Message) => {
+        setMessages(m => [...m, msg]);
+        db.messages.add(msg);
+      });
+    });
+    return () => {
+      stop && stop();
+      connRef.current?.channel.close();
+      connRef.current = null;
     };
-    return () => channel.close();
   }, [username, peer]);
 
   function send(text: string) {
@@ -31,11 +39,11 @@ export function useChat(peer: string | null) {
       text,
       timestamp: Date.now(),
     };
-    const channel = openChatChannel(username, peer);
-    channel.postMessage(msg);
+    if (connRef.current) {
+      sendMessage(connRef.current, text, username);
+    }
     setMessages((m) => [...m, msg]);
     db.messages.add(msg);
-    channel.close();
   }
 
   return { messages, send };

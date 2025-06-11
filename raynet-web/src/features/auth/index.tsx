@@ -5,18 +5,23 @@ import { hashPassword } from '../../lib/crypto';
 interface AuthState {
   user: string | null;
   guest: boolean;
+  displayName: string;
+  status: string;
 }
 
 type Action =
-  | { type: 'login'; user: string; guest?: boolean }
-  | { type: 'logout' };
+  | { type: 'login'; user: string; guest?: boolean; displayName: string; status: string }
+  | { type: 'logout' }
+  | { type: 'update'; displayName: string; status: string };
 
 function reducer(state: AuthState, action: Action): AuthState {
   switch (action.type) {
     case 'login':
-      return { user: action.user, guest: !!action.guest };
+      return { user: action.user, guest: !!action.guest, displayName: action.displayName, status: action.status };
+    case 'update':
+      return { ...state, displayName: action.displayName, status: action.status };
     case 'logout':
-      return { user: null, guest: false };
+      return { user: null, guest: false, displayName: '', status: '' };
     default:
       return state;
   }
@@ -27,6 +32,7 @@ const AuthContext = createContext<{
   register(username: string, password: string): Promise<boolean>;
   login(username: string, password: string): Promise<boolean>;
   guest(username: string): void;
+  updateProfile(displayName: string, status: string): Promise<void>;
   logout(): void;
 } | null>(null);
 
@@ -37,14 +43,14 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, { user: null, guest: false });
+  const [state, dispatch] = useReducer(reducer, { user: null, guest: false, displayName: '', status: '' });
 
   async function register(username: string, password: string) {
     const existing = await db.users.get(username);
     if (existing) return false;
     const hash = await hashPassword(password, username);
-    await db.users.put({ username, passwordHash: hash });
-    dispatch({ type: 'login', user: username });
+    await db.users.put({ username, passwordHash: hash, displayName: username, status: "Hey there! I'm on Raynet." });
+    dispatch({ type: 'login', user: username, displayName: username, status: "Hey there! I'm on Raynet." });
     return true;
   }
 
@@ -53,12 +59,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return false;
     const hash = await hashPassword(password, username);
     if (hash !== user.passwordHash) return false;
-    dispatch({ type: 'login', user: username });
+    dispatch({ type: 'login', user: username, displayName: user.displayName ?? username, status: user.status ?? "Hey there! I'm on Raynet." });
     return true;
   }
 
   function guest(username: string) {
-    dispatch({ type: 'login', user: username, guest: true });
+    dispatch({ type: 'login', user: username, guest: true, displayName: username, status: "Hey there! I'm on Raynet." });
+  }
+
+  async function updateProfile(displayName: string, status: string) {
+    if (!state.user) return;
+    const user = await db.users.get(state.user);
+    if (!user) return;
+    await db.users.put({ ...user, displayName, status });
+    dispatch({ type: 'update', displayName, status });
   }
 
   function logout() {
@@ -66,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ state, register, login, guest, logout }}>
+    <AuthContext.Provider value={{ state, register, login, guest, updateProfile, logout }}>
       {children}
     </AuthContext.Provider>
   );
