@@ -1,7 +1,12 @@
 function $(sel) { return document.querySelector(sel); }
 function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(el => el.classList.add('hidden'));
-  document.querySelector(id).classList.remove('hidden');
+  document.querySelectorAll('.screen').forEach(el => {
+    el.classList.add('hidden');
+    el.classList.remove('active');
+  });
+  const screen = document.querySelector(id);
+  screen.classList.remove('hidden');
+  requestAnimationFrame(() => screen.classList.add('active'));
 }
 function setProfile(profile) {
   $('#profile-avatar').textContent = profile.initials;
@@ -52,15 +57,23 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
     const item = document.querySelector(`.chat-item[data-id="${id}"]`);
     if (item) item.classList.add('active');
+    const chat = chats.find(c => c.id === id);
+    $('#chat-title').textContent = chat ? chat.name : id;
+    $('#view-profile').onclick = () => {
+      setProfile(chat);
+      showScreen('#profile-screen');
+    };
     const msgs = messages[id] || [];
     const msgBox = $('#messages');
+    msgBox.classList.add('switching');
+    setTimeout(() => msgBox.classList.remove('switching'), 300);
     msgBox.innerHTML = '';
     msgs.forEach(m => {
       const div = document.createElement('div');
       div.className = 'message ' + (m.incoming ? 'incoming' : 'outgoing');
       div.textContent = m.text;
       div.addEventListener('click', () => {
-        const profile = m.incoming ? chats.find(c => c.id === id) : me;
+        const profile = m.incoming ? chat : me;
         setProfile(profile);
         showScreen('#profile-screen');
       });
@@ -128,5 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
     messages[currentChat].push({ incoming: false, text: input.value });
     input.value = '';
     loadChat(currentChat);
+    const last = $('#messages').lastElementChild;
+    if (last) last.classList.add('new');
   };
 });

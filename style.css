@@ -27,6 +27,14 @@ button {
 button:hover { opacity: .85; }
 button:focus { outline: 2px solid var(--gray-400); }
 
+.screen {
+  opacity: 0;
+  transition: opacity .3s ease;
+}
+.screen.active {
+  opacity: 1;
+}
+
 #auth-screen {
   display: flex;
   justify-content: center;
@@ -40,7 +48,12 @@ button:focus { outline: 2px solid var(--gray-400); }
 
 .hidden { display: none !important; }
 
-.logo.large { font-size: 32px; margin-bottom: 24px; text-align: center; }
+.logo.large {
+  font-size: 32px;
+  margin-bottom: 24px;
+  text-align: center;
+  font-family: 'Pacifico', cursive;
+}
 .auth-panel { max-width: 320px; width: 90%; }
 .auth-buttons { text-align: center; margin-bottom: 16px; }
 .auth-buttons button {
@@ -78,7 +91,12 @@ button:focus { outline: 2px solid var(--gray-400); }
 .toggle-btn {
   margin-right: 8px;
 }
-.logo { font-size: 24px; font-weight: 700; margin: 0; }
+.logo {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0;
+  font-family: 'Pacifico', cursive;
+}
 .profile-btn, .back-btn { padding: 8px 12px; font-weight: 500; }
 .container { display: flex; height: calc(100vh - 65px); }
 .chat-list {
@@ -97,8 +115,30 @@ button:focus { outline: 2px solid var(--gray-400); }
 .chat-title { font-weight: 600; }
 .chat-subtitle { font-size: 14px; color: var(--gray-200); }
 .chat-timestamp { margin-left: auto; font-size: 12px; color: var(--gray-200); }
-.chat-window { flex: 1; display: flex; flex-direction: column; }
-.messages { flex: 1; padding: 16px; overflow-y: auto; }
+.chat-window {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--gray-600);
+}
+.messages {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  transition: opacity .3s ease;
+}
+.messages.switching { opacity: 0; }
+.message.new { animation: message-in .3s ease forwards; }
+@keyframes message-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 .message { max-width: 70%; padding: 8px 12px; margin-bottom: 8px; border-radius: 8px; line-height: 1.5; }
 .message.incoming { background: #333; align-self: flex-start; }
 .message.outgoing { background: var(--white); color: var(--black); align-self: flex-end; }
