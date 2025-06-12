@@ -115,6 +115,11 @@ document.addEventListener('DOMContentLoaded', () => {
     setProfile(me);
     showScreen('#profile-screen');
   };
+  $('#toggle-list').onclick = () => {
+    const list = $('#chat-list');
+    list.classList.toggle('hidden');
+    $('#toggle-list').textContent = list.classList.contains('hidden') ? 'Show Chats' : 'Hide Chats';
+  };
   $('#back-to-chat').onclick = () => showScreen('#chat-screen');
   $('#send-btn').onclick = () => {
     const input = $('#composer-input');

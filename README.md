@@ -9,5 +9,6 @@ Features included:
 - Chat list and conversation view populated with dummy data.
 - Ability to view your profile or the profile of chat participants.
 - Dark theme using black as the primary background color.
+- Toggle button to hide or reveal the chat list.
 
 Open `index.html` in a modern browser to try the demo. No build step is required.

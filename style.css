@@ -11,9 +11,30 @@ body {
   background: var(--black);
   color: var(--white);
   font-family: 'Inter', sans-serif;
+}
+
+button {
+  font-family: inherit;
+  font-size: 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background: var(--white);
+  color: var(--black);
+  padding: 10px 14px;
+  transition: background .2s ease, opacity .2s ease;
+}
+button:hover { opacity: .85; }
+button:focus { outline: 2px solid var(--gray-400); }
+
+#auth-screen {
   display: flex;
   justify-content: center;
   align-items: center;
+  min-height: 100vh;
+}
+#chat-screen,
+#profile-screen {
   min-height: 100vh;
 }
 
@@ -26,34 +47,20 @@ body {
   display: block;
   width: 100%;
   margin: 8px 0;
-  padding: 12px;
-  background: var(--white);
-  color: var(--black);
-  border: none;
-  border-radius: 4px;
   font-weight: 600;
-  cursor: pointer;
-  transition: opacity .2s ease;
 }
-.auth-buttons button:hover { opacity: .8; }
 .auth-form { text-align: center; animation: fade-in .3s ease; }
 .auth-form input {
   width: 100%;
   margin-top: 8px;
   padding: 12px;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   background: var(--gray-200);
 }
 .auth-form button {
   width: 100%;
-  padding: 12px;
   margin-top: 12px;
-  background: var(--white);
-  color: var(--black);
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
   font-weight: 600;
 }
 
@@ -61,11 +68,28 @@ body {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.app-header { padding: 16px; border-bottom: 1px solid var(--gray-600); display: flex; align-items: center; justify-content: space-between; }
+.app-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--gray-600);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.toggle-btn {
+  margin-right: 8px;
+}
 .logo { font-size: 24px; font-weight: 700; margin: 0; }
-.profile-btn, .back-btn { background: var(--white); color: var(--black); border: none; padding: 8px 12px; cursor: pointer; }
+.profile-btn, .back-btn { padding: 8px 12px; font-weight: 500; }
 .container { display: flex; height: calc(100vh - 65px); }
-.chat-list { width: 280px; border-right: 1px solid var(--gray-600); overflow-y: auto; background: #111; }
+.chat-list {
+  width: 280px;
+  border-right: 1px solid var(--gray-600);
+  overflow-y: auto;
+  background: #111;
+}
+.chat-list.hidden {
+  display: none;
+}
 .chat-item { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--gray-600); cursor: pointer; }
 .chat-item.active { background: #222; }
 .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--gray-400); display: flex; align-items: center; justify-content: center; font-weight: 600; margin-right: 12px; color: var(--black); }
@@ -79,8 +103,29 @@ body {
 .message.incoming { background: #333; align-self: flex-start; }
 .message.outgoing { background: var(--white); color: var(--black); align-self: flex-end; }
 .composer { display: flex; padding: 8px 16px; border-top: 1px solid var(--gray-600); }
-.composer input { flex: 1; border: 1px solid var(--gray-600); padding: 8px; border-radius: 4px; margin-right: 8px; }
-.composer button.send { background: var(--white); color: var(--black); border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+.composer input {
+  flex: 1;
+  border: 1px solid var(--gray-600);
+  background: var(--gray-200);
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-right: 8px;
+}
+.composer input:focus {
+  outline: none;
+  border-color: var(--white);
+}
+.composer button.send {
+  background: var(--white);
+  color: var(--black);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .2s ease;
+}
+.composer button.send:hover { opacity: .8; }
 .profile-info { text-align: center; padding: 32px 16px; }
 #profile-name { margin: 12px 0 4px; }
 #profile-bio { color: var(--gray-200); }
