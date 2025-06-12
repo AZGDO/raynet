@@ -1,0 +1,5 @@
+.grid { display: grid; }
+.flex { display: flex; }
+.h-full { height: 100%; }
+.w-full { width: 100%; }
+.overflow-auto { overflow: auto; }

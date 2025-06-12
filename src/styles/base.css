@@ -1,0 +1,11 @@
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-fg);
+  line-height: 1.5;
+}
+a { color: inherit; text-decoration: none; }
+button { background: none; border: none; cursor: pointer; }
+input, textarea { font: inherit; }

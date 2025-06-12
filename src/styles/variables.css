@@ -1,0 +1,14 @@
+:root {
+  --color-bg: #fff;
+  --color-fg: #000;
+  --color-border: #aaa;
+  --shadow-light: rgba(0,0,0,0.1);
+  --font-sans: 'Helvetica Neue', Arial, sans-serif;
+  --ease: cubic-bezier(0.4,0,0.2,1);
+}
+[data-theme="dark"] {
+  --color-bg: #000;
+  --color-fg: #fff;
+  --color-border: #555;
+  --shadow-light: rgba(255,255,255,0.1);
+}
