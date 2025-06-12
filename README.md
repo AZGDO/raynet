@@ -8,7 +8,9 @@ Features included:
 - Authentication screen with Login, Register and Guest flows.
 - Generates a 12 character user code on first run.
 - Contacts and messages stored locally in your browser.
-- Add contacts manually by code and chat with them.
+- Add contacts by exchanging 12‑char codes and WebRTC offers.
+- Requests can be accepted or declined without any server.
+- Peer‑to‑peer chat uses encrypted WebRTC data channels.
 - View your profile or another user's profile from the chat header.
 - Export and import your data as a JSON file.
 - Dark theme using black as the primary background color.

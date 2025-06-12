@@ -6,6 +6,8 @@ const STORAGE_PROFILE = 'ray_profile';
 const STORAGE_CONTACTS = 'ray_contacts';
 const STORAGE_MESSAGES = 'ray_messages';
 
+const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }];
+
 function saveProfile(p) {
   localStorage.setItem(STORAGE_PROFILE, JSON.stringify(p));
 }
@@ -68,11 +70,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   let contacts = loadContacts();
   let messages = loadMessages();
+  const connections = {};
   let currentChat = contacts.length ? contacts[0].code : null;
 
   function renderChatList() {
     const list = $('#chat-list');
-    list.innerHTML = '<div class="chat-list-header"><button id="add-contact" class="profile-btn">Add Contact</button></div>';
+    list.innerHTML = '<div class="chat-list-header"><button id="add-contact" class="profile-btn">Add Contact</button><button id="accept-offer" class="profile-btn">Accept Request</button></div>';
     contacts.forEach(c => {
       const item = document.createElement('div');
       item.className = 'chat-item';
@@ -87,6 +90,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     const addBtn = $('#add-contact');
     if (addBtn) addBtn.onclick = addContact;
+    const acceptBtn = $('#accept-offer');
+    if (acceptBtn) acceptBtn.onclick = () => {
+      const txt = prompt('Paste offer from contact:');
+      if (txt) acceptOffer(txt);
+    };
   }
 
   function loadChat(code) {
@@ -114,6 +122,18 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       msgBox.appendChild(div);
     });
+    const connectBtn = $('#connect-contact');
+    const finishBtn = $('#finish-connect');
+    if (chat && !chat.connected) connectBtn.classList.remove('hidden');
+    else connectBtn.classList.add('hidden');
+    if (connections[code] && connections[code].awaiting) finishBtn.classList.remove('hidden');
+    else finishBtn.classList.add('hidden');
+    connectBtn.onclick = () => connectContact(chat);
+    finishBtn.onclick = () => {
+      const ans = prompt('Paste answer from contact:');
+      if (ans) finishConnection(chat, ans);
+      finishBtn.classList.add('hidden');
+    };
   }
 
   function addContact() {
@@ -121,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!code) return;
     if (contacts.find(c => c.code === code)) return;
     const name = prompt('Contact name:') || code;
-    const contact = { code, name, initials: name.slice(0, 2).toUpperCase(), bio: '' };
+    const contact = { code, name, initials: name.slice(0, 2).toUpperCase(), bio: '', connected: false };
     contacts.push(contact);
     saveContacts(contacts);
     renderChatList();
@@ -131,6 +151,10 @@ document.addEventListener('DOMContentLoaded', () => {
   function sendMessage() {
     const input = $('#composer-input');
     if (!input.value.trim() || !currentChat) return;
+    const conn = connections[currentChat];
+    if (conn && conn.channel && conn.channel.readyState === 'open') {
+      conn.channel.send(input.value);
+    }
     if (!messages[currentChat]) messages[currentChat] = [];
     messages[currentChat].push({ incoming: false, text: input.value });
     saveMessages(messages);
@@ -138,6 +162,71 @@ document.addEventListener('DOMContentLoaded', () => {
     loadChat(currentChat);
     const last = $('#messages').lastElementChild;
     if (last) last.classList.add('new');
+  }
+
+  function setupChannel(code, ch) {
+    ch.onmessage = e => {
+      if (!messages[code]) messages[code] = [];
+      messages[code].push({ incoming: true, text: e.data });
+      saveMessages(messages);
+      if (currentChat === code) loadChat(code);
+    };
+    ch.onopen = () => {
+      const c = contacts.find(x => x.code === code);
+      if (c) { c.connected = true; saveContacts(contacts); renderChatList(); }
+    };
+  }
+
+  async function connectContact(contact) {
+    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    const channel = pc.createDataChannel('chat');
+    setupChannel(contact.code, channel);
+    connections[contact.code] = { pc, channel, awaiting: true };
+    pc.onicecandidate = ev => {
+      if (!ev.candidate) {
+        const data = btoa(JSON.stringify({ from: profile.code, to: contact.code, sdp: pc.localDescription.sdp, type: pc.localDescription.type }));
+        prompt('Send this offer to your contact:', data);
+      }
+    };
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+  }
+
+  async function acceptOffer(data) {
+    let parsed;
+    try { parsed = JSON.parse(atob(data)); } catch { alert('invalid data'); return; }
+    let contact = contacts.find(c => c.code === parsed.from);
+    if (!contact) {
+      const name = prompt('Contact name:') || parsed.from;
+      contact = { code: parsed.from, name, initials: name.slice(0,2).toUpperCase(), bio: '', connected: false };
+      contacts.push(contact);
+      saveContacts(contacts);
+      renderChatList();
+    }
+    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    pc.ondatachannel = e => setupChannel(contact.code, e.channel);
+    connections[contact.code] = { pc };
+    await pc.setRemoteDescription(new RTCSessionDescription({ type: parsed.type, sdp: parsed.sdp }));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    pc.onicecandidate = ev => {
+      if (!ev.candidate) {
+        const resp = btoa(JSON.stringify({ from: profile.code, to: contact.code, sdp: pc.localDescription.sdp, type: pc.localDescription.type }));
+        prompt('Send this answer back to your contact:', resp);
+      }
+    };
+    loadChat(contact.code);
+  }
+
+  async function finishConnection(contact, data) {
+    let parsed;
+    try { parsed = JSON.parse(atob(data)); } catch { alert('invalid data'); return; }
+    const conn = connections[contact.code];
+    if (!conn) return;
+    await conn.pc.setRemoteDescription(new RTCSessionDescription({ type: parsed.type, sdp: parsed.sdp }));
+    conn.awaiting = false;
+    const c = contacts.find(x => x.code === contact.code);
+    if (c) { c.connected = true; saveContacts(contacts); renderChatList(); }
   }
 
   function exportData() {
