@@ -65,8 +65,9 @@ function setProfile(profile) {
 document.addEventListener('DOMContentLoaded', () => {
   let profile = loadProfile();
   if (!profile) {
-    profile = { name: 'Guest', initials: 'GU', bio: '', code: generateCode() };
-    saveProfile(profile);
+    showScreen('#onboarding-screen');
+  } else {
+    showScreen('#chat-screen');
   }
   let contacts = loadContacts();
   let messages = loadMessages();
@@ -151,17 +152,32 @@ document.addEventListener('DOMContentLoaded', () => {
   function sendMessage() {
     const input = $('#composer-input');
     if (!input.value.trim() || !currentChat) return;
+    if (!messages[currentChat]) messages[currentChat] = [];
+    const msg = { incoming: false, text: input.value, sent: false };
+    messages[currentChat].push(msg);
     const conn = connections[currentChat];
     if (conn && conn.channel && conn.channel.readyState === 'open') {
       conn.channel.send(input.value);
+      msg.sent = true;
     }
-    if (!messages[currentChat]) messages[currentChat] = [];
-    messages[currentChat].push({ incoming: false, text: input.value });
     saveMessages(messages);
     input.value = '';
     loadChat(currentChat);
     const last = $('#messages').lastElementChild;
     if (last) last.classList.add('new');
+  }
+
+  function maybeSendQueued(code) {
+    const conn = connections[code];
+    if (!conn || !conn.channel || conn.channel.readyState !== 'open') return;
+    const msgs = messages[code] || [];
+    msgs.forEach(m => {
+      if (!m.incoming && !m.sent) {
+        conn.channel.send(m.text);
+        m.sent = true;
+      }
+    });
+    saveMessages(messages);
   }
 
   function setupChannel(code, ch) {
@@ -174,6 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ch.onopen = () => {
       const c = contacts.find(x => x.code === code);
       if (c) { c.connected = true; saveContacts(contacts); renderChatList(); }
+      maybeSendQueued(code);
     };
   }
 
@@ -227,6 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
     conn.awaiting = false;
     const c = contacts.find(x => x.code === contact.code);
     if (c) { c.connected = true; saveContacts(contacts); renderChatList(); }
+    maybeSendQueued(contact.code);
   }
 
   function exportData() {
@@ -263,50 +281,18 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#export-ray').onclick = exportData;
   $('#import-ray').addEventListener('change', importData);
 
-  $('#show-login').onclick = () => {
-    $('#login-form').classList.remove('hidden');
-    $('#register-form').classList.add('hidden');
-    $('#guest-form').classList.add('hidden');
-  };
-  $('#show-register').onclick = () => {
-    $('#register-form').classList.remove('hidden');
-    $('#login-form').classList.add('hidden');
-    $('#guest-form').classList.add('hidden');
-  };
-  $('#continue-guest').onclick = () => {
-    $('#guest-form').classList.remove('hidden');
-    $('#login-form').classList.add('hidden');
-    $('#register-form').classList.add('hidden');
-  };
-
-  $('#login-form').addEventListener('submit', e => {
+  $('#create-profile-form').addEventListener('submit', e => {
     e.preventDefault();
-    profile.name = $('#login-name').value || 'Me';
-    profile.initials = profile.name.slice(0, 2).toUpperCase();
+    profile = {
+      name: $('#create-name').value.trim() || 'Me',
+      bio: $('#create-bio').value.trim(),
+      initials: ($('#create-name').value.trim() || 'Me').slice(0, 2).toUpperCase(),
+      code: generateCode()
+    };
     saveProfile(profile);
-    showScreen('#chat-screen');
+    setProfile(profile);
+    showScreen('#profile-screen');
     renderChatList();
-    if (contacts.length) loadChat(contacts[0].code);
-  });
-
-  $('#register-form').addEventListener('submit', e => {
-    e.preventDefault();
-    profile.name = $('#register-name').value || 'Me';
-    profile.initials = profile.name.slice(0, 2).toUpperCase();
-    saveProfile(profile);
-    showScreen('#chat-screen');
-    renderChatList();
-    if (contacts.length) loadChat(contacts[0].code);
-  });
-
-  $('#guest-form').addEventListener('submit', e => {
-    e.preventDefault();
-    profile.name = $('#guest-name').value || 'Guest';
-    profile.initials = profile.name.slice(0, 2).toUpperCase();
-    saveProfile(profile);
-    showScreen('#chat-screen');
-    renderChatList();
-    if (contacts.length) loadChat(contacts[0].code);
   });
 
   $('#my-profile').onclick = () => {

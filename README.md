@@ -5,7 +5,7 @@ This repository contains a prototype of the **raynet** messenger web client. It 
 Features included:
 
 - Cursive **raynet** logo font to match the branding.
-- Authentication screen with Login, Register and Guest flows.
+- Simple onboarding screen to create a profile with a username and bio.
 - Generates a 12 character user code on first run.
 - Contacts and messages stored locally in your browser.
 - Add contacts by exchanging 12‑char codes and WebRTC offers.
@@ -13,6 +13,7 @@ Features included:
 - Peer‑to‑peer chat uses encrypted WebRTC data channels.
 - View your profile or another user's profile from the chat header.
 - Export and import your data as a JSON file.
+- Messages queued locally if a peer is offline and delivered once connected.
 - Dark theme using black as the primary background color.
 - Toggle button to hide or reveal the chat list.
 - Animated screen transitions and message animations for a smoother demo.

@@ -9,29 +9,14 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Authentication Screens -->
-  <section id="auth-screen" class="screen active">
+  <!-- Onboarding -->
+  <section id="onboarding-screen" class="screen active">
     <div class="auth-panel">
       <h1 class="logo large">raynet</h1>
-      <div class="auth-buttons">
-        <button id="show-login">Login</button>
-        <button id="show-register">Register</button>
-        <button id="continue-guest">Continue as Guest</button>
-      </div>
-      <form id="login-form" class="auth-form hidden">
-        <input type="text" id="login-name" placeholder="Username" required>
-        <input type="password" placeholder="Password" required>
-        <button type="submit">Login</button>
-      </form>
-      <form id="register-form" class="auth-form hidden">
-        <input type="text" id="register-name" placeholder="Username" required>
-        <input type="email" placeholder="Email" required>
-        <input type="password" placeholder="Password" required>
-        <button type="submit">Register</button>
-      </form>
-      <form id="guest-form" class="auth-form hidden">
-        <input type="text" id="guest-name" placeholder="Guest username" required>
-        <button type="submit">Enter</button>
+      <form id="create-profile-form" class="auth-form">
+        <input type="text" id="create-name" placeholder="Your name" required>
+        <input type="text" id="create-bio" placeholder="Bio (optional)">
+        <button type="submit">Start</button>
       </form>
     </div>
   </section>
