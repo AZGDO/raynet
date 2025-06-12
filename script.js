@@ -71,15 +71,17 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#show-login').onclick = () => {
     $('#login-form').classList.remove('hidden');
     $('#register-form').classList.add('hidden');
+    $('#guest-form').classList.add('hidden');
   };
   $('#show-register').onclick = () => {
     $('#register-form').classList.remove('hidden');
     $('#login-form').classList.add('hidden');
+    $('#guest-form').classList.add('hidden');
   };
   $('#continue-guest').onclick = () => {
-    showScreen('#chat-screen');
-    renderChatList();
-    loadChat(currentChat);
+    $('#guest-form').classList.remove('hidden');
+    $('#login-form').classList.add('hidden');
+    $('#register-form').classList.add('hidden');
   };
 
   $('#login-form').addEventListener('submit', e => {
@@ -94,6 +96,15 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#register-form').addEventListener('submit', e => {
     e.preventDefault();
     me.name = $('#register-name').value || 'Me';
+    me.initials = me.name.slice(0,2).toUpperCase();
+    showScreen('#chat-screen');
+    renderChatList();
+    loadChat(currentChat);
+  });
+
+  $('#guest-form').addEventListener('submit', e => {
+    e.preventDefault();
+    me.name = $('#guest-name').value || 'Guest';
     me.initials = me.name.slice(0,2).toUpperCase();
     showScreen('#chat-screen');
     renderChatList();

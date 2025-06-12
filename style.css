@@ -11,14 +11,56 @@ body {
   background: var(--black);
   color: var(--white);
   font-family: 'Inter', sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
 }
-.screen.hidden { display: none; }
-.logo.large { font-size: 32px; margin-top: 40px; text-align: center; }
-.auth-buttons { text-align: center; margin: 24px 0; }
-.auth-buttons button { margin: 8px; padding: 12px 24px; background: var(--white); color: var(--black); border: none; cursor: pointer; }
-.auth-form { text-align: center; margin-top: 16px; }
-.auth-form input { display: block; width: 80%; margin: 8px auto; padding: 8px; }
-.auth-form button { padding: 8px 16px; margin-top: 8px; background: var(--white); color: var(--black); border: none; cursor: pointer; }
+
+.hidden { display: none !important; }
+
+.logo.large { font-size: 32px; margin-bottom: 24px; text-align: center; }
+.auth-panel { max-width: 320px; width: 90%; }
+.auth-buttons { text-align: center; margin-bottom: 16px; }
+.auth-buttons button {
+  display: block;
+  width: 100%;
+  margin: 8px 0;
+  padding: 12px;
+  background: var(--white);
+  color: var(--black);
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .2s ease;
+}
+.auth-buttons button:hover { opacity: .8; }
+.auth-form { text-align: center; animation: fade-in .3s ease; }
+.auth-form input {
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px;
+  border: none;
+  border-radius: 4px;
+  background: var(--gray-200);
+}
+.auth-form button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 12px;
+  background: var(--white);
+  color: var(--black);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 .app-header { padding: 16px; border-bottom: 1px solid var(--gray-600); display: flex; align-items: center; justify-content: space-between; }
 .logo { font-size: 24px; font-weight: 700; margin: 0; }
 .profile-btn, .back-btn { background: var(--white); color: var(--black); border: none; padding: 8px 12px; cursor: pointer; }

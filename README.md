@@ -4,7 +4,8 @@ This repository contains a prototype of the **raynet** messenger web client. It 
 
 Features included:
 
-- Authentication screen with Login, Register and Guest options.
+- Authentication screen with sleek Login, Register and Guest flows.
+- Guest login lets you choose a temporary username.
 - Chat list and conversation view populated with dummy data.
 - Ability to view your profile or the profile of chat participants.
 - Dark theme using black as the primary background color.
