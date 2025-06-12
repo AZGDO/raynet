@@ -105,6 +105,10 @@ button:focus { outline: 2px solid var(--gray-400); }
   overflow-y: auto;
   background: #111;
 }
+.chat-list-header {
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--gray-600);
+}
 .chat-list.hidden {
   display: none;
 }
@@ -169,6 +173,7 @@ button:focus { outline: 2px solid var(--gray-400); }
 .profile-info { text-align: center; padding: 32px 16px; }
 #profile-name { margin: 12px 0 4px; }
 #profile-bio { color: var(--gray-200); }
+#profile-code-container { margin: 16px 0; }
 @media (max-width: 768px) {
   .chat-list { width: 100%; height: auto; }
   .chat-window { display: none; }

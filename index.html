@@ -44,7 +44,11 @@
       <button id="my-profile" class="profile-btn">Profile</button>
     </header>
     <main class="container">
-      <div class="chat-list" id="chat-list"></div>
+      <div class="chat-list" id="chat-list">
+        <div class="chat-list-header">
+          <button id="add-contact" class="profile-btn">Add Contact</button>
+        </div>
+      </div>
       <div class="chat-window" id="chat-window">
         <div class="chat-header">
           <h2 id="chat-title"></h2>
@@ -69,6 +73,11 @@
       <div class="avatar large" id="profile-avatar"></div>
       <h2 id="profile-name"></h2>
       <p id="profile-bio"></p>
+      <p id="profile-code-container">Code: <span id="profile-code"></span>
+        <button id="copy-code">Copy</button>
+      </p>
+      <button id="export-ray" class="profile-btn">Export</button>
+      <input type="file" id="import-ray" class="hidden" />
     </div>
   </section>
 

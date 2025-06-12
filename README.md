@@ -5,11 +5,12 @@ This repository contains a prototype of the **raynet** messenger web client. It 
 Features included:
 
 - Cursive **raynet** logo font to match the branding.
-
-- Authentication screen with sleek Login, Register and Guest flows.
-- Guest login lets you choose a temporary username.
-- Chat list and conversation view populated with dummy data.
-- Ability to view your profile or open another user's profile from the chat header.
+- Authentication screen with Login, Register and Guest flows.
+- Generates a 12 character user code on first run.
+- Contacts and messages stored locally in your browser.
+- Add contacts manually by code and chat with them.
+- View your profile or another user's profile from the chat header.
+- Export and import your data as a JSON file.
 - Dark theme using black as the primary background color.
 - Toggle button to hide or reveal the chat list.
 - Animated screen transitions and message animations for a smoother demo.
