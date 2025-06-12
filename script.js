@@ -54,11 +54,11 @@ function setProfile(profile) {
 
 document.addEventListener('DOMContentLoaded', () => {
   const profiles = {};
-  const chats = [
+  let chats = [
     { id: 'ray', name: 'Ray Adams', subtitle: 'Hey, have you seen this?', timestamp: '09:32', initials: 'RA', bio: 'Lead dev at Raynet', code: generateCode() },
     { id: 'lana', name: 'Lana Norris', subtitle: "I'll call you back.", timestamp: 'Yesterday', initials: 'LN', bio: 'Designer at Raynet', code: generateCode() }
   ];
-  const messages = {
+  let messages = {
     ray: [
       { incoming: true, text: 'Hey there!' },
       { incoming: false, text: "Hi! How's it going?" },
@@ -69,9 +69,26 @@ document.addEventListener('DOMContentLoaded', () => {
       { incoming: false, text: 'Sure, talk soon.' }
     ]
   };
+  let requests = {};
   let me = { name: 'Guest', initials: 'GU', bio: 'Just visiting Raynet', code: generateCode(), password: '' };
   chats.forEach(c => { profiles[c.id] = c; });
   let currentChat = 'ray';
+
+  function checkRequests() {
+    const list = requests[me.code] || [];
+    while (list.length) {
+      const req = list.shift();
+      if (confirm(`${req.name} wants to connect. Accept?`)) {
+        if (!profiles[req.id]) {
+          profiles[req.id] = { id: req.id, name: req.name, code: req.code, initials: req.name.slice(0,2).toUpperCase() };
+        }
+        if (!chats.find(c => c.id === req.id)) {
+          chats.push(profiles[req.id]);
+          messages[req.id] = [];
+        }
+      }
+    }
+  }
 
   function renderChatList() {
     const list = $('#chat-list');
@@ -150,16 +167,29 @@ document.addEventListener('DOMContentLoaded', () => {
     $('#register-form').classList.add('hidden');
   };
 
-  $('#login-form').addEventListener('submit', e => {
+  $('#login-form').addEventListener('submit', async e => {
     e.preventDefault();
-    me.name = $('#login-name').value || 'Me';
-    me.password = $('#login-pass').value || '';
-    me.initials = me.name.slice(0,2).toUpperCase();
-    if (!me.code) me.code = generateCode();
-    profiles.me = me;
-    showScreen('#chat-screen');
-    renderChatList();
-    loadChat(currentChat);
+    const file = $('#login-file').files[0];
+    const pass = $('#login-pass').value || '';
+    if (!file) return;
+    const buf = new Uint8Array(await file.arrayBuffer());
+    try {
+      const text = await decryptData(buf, pass);
+      const data = JSON.parse(text);
+      chats = data.chats || [];
+      messages = data.messages || {};
+      requests = data.requests || {};
+      me = data.me || me;
+      me.password = pass;
+      chats.forEach(c => { profiles[c.id] = c; });
+      profiles.me = me;
+      showScreen('#chat-screen');
+      renderChatList();
+      loadChat(chats[0] ? chats[0].id : currentChat);
+      checkRequests();
+    } catch(err) {
+      alert('Failed to load file');
+    }
   });
 
   $('#register-form').addEventListener('submit', e => {
@@ -172,6 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showScreen('#chat-screen');
     renderChatList();
     loadChat(currentChat);
+    checkRequests();
   });
 
   $('#guest-form').addEventListener('submit', e => {
@@ -183,6 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showScreen('#chat-screen');
     renderChatList();
     loadChat(currentChat);
+    checkRequests();
   });
 
   $('#my-profile').onclick = () => {
@@ -220,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!me.password) {
       me.password = prompt('Enter a password for encryption') || '';
     }
-    const data = JSON.stringify({ me, chats, messages });
+    const data = JSON.stringify({ me, chats, messages, requests });
     const buf = await encryptData(data, me.password);
     const blob = new Blob([buf], { type: 'application/octet-stream' });
     const a = document.createElement('a');
@@ -243,13 +275,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const code = $('#code-search').value.trim().toUpperCase();
     const prof = Object.values(profiles).find(p => p.code === code);
     if (prof) {
-      if (!chats.find(c => c.id === prof.id)) {
-        chats.push(prof);
-        profiles[prof.id] = prof;
-        messages[prof.id] = [];
+      if (confirm(`Connect with ${prof.name}?`)) {
+        if (!requests[prof.code]) requests[prof.code] = [];
+        requests[prof.code].push({ id: me.id || 'me', code: me.code, name: me.name });
+        alert('Request sent');
       }
-      renderChatList();
-      loadChat(prof.id);
     } else {
       alert('User not found');
     }
