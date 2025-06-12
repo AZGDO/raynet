@@ -1,12 +1,12 @@
 # raynet Web UI
 
-This repository contains the beginnings of the **raynet** messenger web UI. The layout and styles are based on the project's design specification which focuses on a monochrome palette and the "Inter" typeface.
+This repository contains a prototype of the **raynet** messenger web client. It implements a minimal set of screens based on the design specification.
 
-Currently this prototype includes:
+Features included:
 
-- A basic chat list and conversation window.
-- Styles that define the core color palette and typography.
-- A simple responsive layout for desktop and mobile.
+- Authentication screen with Login, Register and Guest options.
+- Chat list and conversation view populated with dummy data.
+- Ability to view your profile or the profile of chat participants.
+- Dark theme using black as the primary background color.
 
-Run the `index.html` file in a browser to view the current UI draft.
-
+Open `index.html` in a modern browser to try the demo. No build step is required.

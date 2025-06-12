@@ -8,39 +8,58 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="app-header">
-    <h1 class="logo">raynet</h1>
-  </header>
-  <main class="container">
-    <div class="chat-list">
-      <div class="chat-item active">
-        <div class="avatar">RA</div>
-        <div class="chat-info">
-          <div class="chat-title">Ray Adams</div>
-          <div class="chat-subtitle">Hey, have you seen this?</div>
-        </div>
-        <div class="chat-timestamp">09:32</div>
-      </div>
-      <div class="chat-item">
-        <div class="avatar">LN</div>
-        <div class="chat-info">
-          <div class="chat-title">Lana Norris</div>
-          <div class="chat-subtitle">I'll call you back.</div>
-        </div>
-        <div class="chat-timestamp">Yesterday</div>
-      </div>
+  <!-- Authentication Screens -->
+  <section id="auth-screen" class="screen active">
+    <h1 class="logo large">raynet</h1>
+    <div class="auth-buttons">
+      <button id="show-login">Login</button>
+      <button id="show-register">Register</button>
+      <button id="continue-guest">Continue as Guest</button>
     </div>
-    <div class="chat-window">
-      <div class="messages">
-        <div class="message incoming">Hey there!</div>
-        <div class="message outgoing">Hi! How's it going?</div>
-        <div class="message incoming">All good, thanks.</div>
+    <form id="login-form" class="auth-form hidden">
+      <input type="text" id="login-name" placeholder="Username" required>
+      <input type="password" placeholder="Password" required>
+      <button type="submit">Login</button>
+    </form>
+    <form id="register-form" class="auth-form hidden">
+      <input type="text" id="register-name" placeholder="Username" required>
+      <input type="email" placeholder="Email" required>
+      <input type="password" placeholder="Password" required>
+      <button type="submit">Register</button>
+    </form>
+  </section>
+
+  <!-- Main Chat Screen -->
+  <section id="chat-screen" class="screen hidden">
+    <header class="app-header">
+      <h1 class="logo">raynet</h1>
+      <button id="my-profile" class="profile-btn">Profile</button>
+    </header>
+    <main class="container">
+      <div class="chat-list" id="chat-list"></div>
+      <div class="chat-window" id="chat-window">
+        <div class="messages" id="messages"></div>
+        <div class="composer">
+          <input type="text" id="composer-input" placeholder="Type a message…" />
+          <button class="send" id="send-btn">Send</button>
+        </div>
       </div>
-      <div class="composer">
-        <input type="text" placeholder="Type a message…" />
-        <button class="send">Send</button>
-      </div>
+    </main>
+  </section>
+
+  <!-- Profile Screen -->
+  <section id="profile-screen" class="screen hidden">
+    <header class="app-header">
+      <button id="back-to-chat" class="back-btn">Back</button>
+      <h1 class="logo">Profile</h1>
+    </header>
+    <div class="profile-info">
+      <div class="avatar large" id="profile-avatar"></div>
+      <h2 id="profile-name"></h2>
+      <p id="profile-bio"></p>
     </div>
-  </main>
+  </section>
+
+  <script src="script.js"></script>
 </body>
 </html>
