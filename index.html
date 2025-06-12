@@ -20,13 +20,13 @@
       </div>
       <form id="login-form" class="auth-form hidden">
         <input type="text" id="login-name" placeholder="Username" required>
-        <input type="password" placeholder="Password" required>
+        <input type="password" id="login-pass" placeholder="Password" required>
         <button type="submit">Login</button>
       </form>
       <form id="register-form" class="auth-form hidden">
         <input type="text" id="register-name" placeholder="Username" required>
         <input type="email" placeholder="Email" required>
-        <input type="password" placeholder="Password" required>
+        <input type="password" id="register-pass" placeholder="Password" required>
         <button type="submit">Register</button>
       </form>
       <form id="guest-form" class="auth-form hidden">
@@ -44,7 +44,12 @@
       <button id="my-profile" class="profile-btn">Profile</button>
     </header>
     <main class="container">
-      <div class="chat-list" id="chat-list"></div>
+      <div class="chat-list" id="chat-list">
+        <div class="chat-search">
+          <input type="text" id="code-search" placeholder="Enter code">
+          <button id="find-user">Find</button>
+        </div>
+      </div>
       <div class="chat-window" id="chat-window">
         <div class="chat-header">
           <h2 id="chat-title"></h2>
@@ -67,8 +72,20 @@
     </header>
     <div class="profile-info">
       <div class="avatar large" id="profile-avatar"></div>
-      <h2 id="profile-name"></h2>
-      <p id="profile-bio"></p>
+      <div id="profile-view">
+        <h2 id="profile-name"></h2>
+        <p id="profile-bio"></p>
+        <p id="profile-code"></p>
+      </div>
+      <form id="profile-edit" class="hidden">
+        <input type="text" id="edit-name" placeholder="Name" required>
+        <textarea id="edit-bio" placeholder="Bio"></textarea>
+        <button id="save-profile" type="submit">Save</button>
+      </form>
+      <div class="profile-actions">
+        <button id="edit-profile" class="hidden">Edit Profile</button>
+        <button id="export-profile" class="hidden">Save .ray</button>
+      </div>
     </div>
   </section>
 
