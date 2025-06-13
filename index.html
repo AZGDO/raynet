@@ -44,7 +44,12 @@
       <button id="my-profile" class="profile-btn">Profile</button>
     </header>
     <main class="container">
-      <div class="chat-list" id="chat-list"></div>
+      <div class="chat-list" id="chat-list">
+        <div class="user-search-container">
+          <input type="text" id="user-search-input" placeholder="Search by code (XX-XX-..)">
+          <button id="user-search-btn">Search</button>
+        </div>
+      </div>
       <div class="chat-window" id="chat-window">
         <div class="chat-header">
           <h2 id="chat-title"></h2>
@@ -69,6 +74,12 @@
       <div class="avatar large" id="profile-avatar"></div>
       <h2 id="profile-name"></h2>
       <p id="profile-bio"></p>
+      <p class="profile-code-container">Your Code: <span id="profile-code-display" class="profile-code-text"></span></p>
+      <div class="profile-actions">
+        <button id="edit-profile-btn">Edit Profile</button>
+        <button id="save-profile-btn" class="hidden">Save Profile</button>
+        <button id="export-ray-btn">Save to .ray file</button>
+      </div>
     </div>
   </section>
 
