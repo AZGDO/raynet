@@ -73,8 +73,12 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentChat = 'ray';
 
   function renderChatList() {
-    const list = $('#chat-list');
-    list.innerHTML = '';
+    const chatItemsContainer = $('#chat-items-container'); // Target the new container
+    if (!chatItemsContainer) {
+      console.error("#chat-items-container not found!");
+      return;
+    }
+    chatItemsContainer.innerHTML = ''; // Clear only the items container
     chats.forEach(c => {
       const item = document.createElement('div');
       item.className = 'chat-item';
@@ -87,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <div class="chat-timestamp">${c.timestamp}</div>`;
       item.addEventListener('click', () => loadChat(c.id));
-      list.appendChild(item);
+      chatItemsContainer.appendChild(item); // Append to the new container
     });
   }
 
