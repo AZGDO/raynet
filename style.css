@@ -119,6 +119,10 @@ button:focus { outline: 2px solid var(--gray-400); }
   background: var(--gray-200);
 }
 .chat-search button { padding: 6px 10px; }
+.search-result { padding: 8px; border-bottom: 1px solid var(--gray-600); }
+.result-item { display: flex; align-items: center; }
+.result-item .avatar { margin-right: 8px; }
+.result-item button { margin-left: auto; }
 .chat-list.hidden {
   display: none;
 }

@@ -85,7 +85,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!chats.find(c => c.id === req.id)) {
           chats.push(profiles[req.id]);
           messages[req.id] = [];
+          renderChatList();
         }
+        loadChat(req.id);
       }
     }
   }
@@ -273,15 +275,26 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   $('#find-user').onclick = () => {
     const code = $('#code-search').value.trim().toUpperCase();
-    const prof = Object.values(profiles).find(p => p.code === code);
+    const result = $('#search-result');
+    result.innerHTML = '';
+    if (!code) { result.classList.add('hidden'); return; }
+    const prof = Object.values(profiles).find(p => p.code === code && p !== me);
     if (prof) {
-      if (confirm(`Connect with ${prof.name}?`)) {
+      const div = document.createElement('div');
+      div.className = 'result-item';
+      div.innerHTML = `<div class="avatar">${prof.initials}</div><div>${prof.name}</div><button>Connect</button>`;
+      div.querySelector('button').onclick = () => {
         if (!requests[prof.code]) requests[prof.code] = [];
         requests[prof.code].push({ id: me.id || 'me', code: me.code, name: me.name });
         alert('Request sent');
-      }
+        result.classList.add('hidden');
+      };
+      result.appendChild(div);
     } else {
-      alert('User not found');
+      result.textContent = 'User not found';
     }
+    result.classList.remove('hidden');
   };
+
+  setInterval(checkRequests, 5000);
 });
