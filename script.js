@@ -8,50 +8,62 @@ function showScreen(id) {
   screen.classList.remove('hidden');
   requestAnimationFrame(() => screen.classList.add('active'));
 }
-function setProfile(profile) {
-  if (typeof me === 'undefined' || me === null) {
-    console.error("CRITICAL: 'me' is not defined or null when setProfile is called. Profile to view:", profile);
+function setProfile(profileToDisplay, currentActiveUser) {
+  if (typeof currentActiveUser === 'undefined' || currentActiveUser === null) {
+    console.error("CRITICAL: 'currentActiveUser' (expected 'me') is not defined or null when calling setProfile. Profile being viewed:", profileToDisplay);
     return;
   }
-  $('#profile-avatar').textContent = profile.initials;
+  if (!profileToDisplay) {
+    console.error("CRITICAL: 'profileToDisplay' is not defined or null when calling setProfile.");
+    return;
+  }
 
-  // Clear previous edit fields if any
+  $('#profile-avatar').textContent = profileToDisplay.initials;
+
   const profileNameEl = $('#profile-name');
   const profileBioEl = $('#profile-bio');
-  profileNameEl.innerHTML = ''; // Clear potential input fields
-  profileBioEl.innerHTML = '';   // Clear potential input fields
-  profileNameEl.textContent = profile.name;
-  profileBioEl.textContent = profile.bio || '';
 
-  // Display profile code if it exists
+  // Always ensure edit fields are removed and text content is displayed initially
+  // This handles cases where user was editing, then views another profile, or own profile is re-rendered.
+  const editNameInput = $('#edit-profile-name');
+  if (editNameInput && editNameInput.parentElement === profileNameEl) profileNameEl.innerHTML = '';
+  const editBioTextarea = $('#edit-profile-bio');
+  if (editBioTextarea && editBioTextarea.parentElement === profileBioEl) profileBioEl.innerHTML = '';
+
+  profileNameEl.textContent = profileToDisplay.name;
+  profileNameEl.classList.remove('hidden'); // Ensure text is visible
+  profileBioEl.textContent = profileToDisplay.bio || '';
+  profileBioEl.classList.remove('hidden'); // Ensure text is visible
+
+
   const profileCodeDisplay = $('#profile-code-display');
   const profileCodeContainer = document.querySelector('.profile-code-container');
-  if (profile.profileCode) {
-    profileCodeDisplay.textContent = profile.profileCode;
+  if (profileToDisplay.profileCode) {
+    profileCodeDisplay.textContent = profileToDisplay.profileCode;
     if (profileCodeContainer) profileCodeContainer.style.display = 'block';
   } else {
     profileCodeDisplay.textContent = '';
     if (profileCodeContainer) profileCodeContainer.style.display = 'none';
   }
 
-  // Handle button visibility based on whether it's 'me'
   const editProfileBtn = $('#edit-profile-btn');
   const saveProfileBtn = $('#save-profile-btn');
   const exportRayBtn = $('#export-ray-btn');
 
-  if (profile === me) {
+  const isOwnProfile = profileToDisplay === currentActiveUser;
+
+  if (isOwnProfile) {
+    // Viewing own profile
     editProfileBtn.classList.remove('hidden');
     exportRayBtn.classList.remove('hidden');
-    // Ensure save button is hidden unless actively editing
-    if (!saveProfileBtn.classList.contains('hidden')) {
-        // This case implies we were editing, then viewed another profile, then came back.
-        // Reset by hiding save and showing edit.
-        saveProfileBtn.classList.add('hidden');
-    }
-  } else {
-    editProfileBtn.classList.add('hidden');
+    // If save button is visible (meaning edit mode was active), it should be hidden
+    // as we are resetting to display mode.
     saveProfileBtn.classList.add('hidden');
+  } else {
+    // Viewing someone else's profile
+    editProfileBtn.classList.add('hidden');
     exportRayBtn.classList.add('hidden');
+    saveProfileBtn.classList.add('hidden');
   }
 }
 
@@ -107,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const chat = chats.find(c => c.id === id);
     $('#chat-title').textContent = chat ? chat.name : id;
     $('#view-profile').onclick = () => {
-      setProfile(chat);
+      setProfile(chat, me); // Pass currentActiveUser (me)
       showScreen('#profile-screen');
     };
     const msgs = messages[id] || [];
@@ -122,8 +134,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const decryptedText = xorEncryptDecrypt(m.text, E2E_MESSAGE_KEY);
       div.textContent = decryptedText;
       div.addEventListener('click', () => {
-        const profile = m.incoming ? chat : me;
-        setProfile(profile);
+        const profileOnClick = m.incoming ? chat : me;
+        setProfile(profileOnClick, me); // Pass currentActiveUser (me)
         showScreen('#profile-screen');
       });
       msgBox.appendChild(div);
@@ -175,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   $('#my-profile').onclick = () => {
-    setProfile(me);
+    setProfile(me, me); // Pass currentActiveUser (me)
     showScreen('#profile-screen');
   };
   $('#toggle-list').onclick = () => {
@@ -184,44 +196,65 @@ document.addEventListener('DOMContentLoaded', () => {
     $('#toggle-list').textContent = list.classList.contains('hidden') ? 'Show Chats' : 'Hide Chats';
   };
   $('#back-to-chat').onclick = () => {
-    // If navigating away from profile screen while editing, reset edit state
-    if (!$('#save-profile-btn').classList.contains('hidden')) {
-      setProfile(me); // This will reset the fields and button states
+    // If navigating away from profile screen while editing自分のプロフィール (me)
+    // and save button is visible (i.e. edit mode is active)
+    const saveProfileBtn = $('#save-profile-btn');
+    if (!saveProfileBtn.classList.contains('hidden')) {
+      // Check if the currently displayed profile on #profile-screen is indeed 'me'
+      // This check might be redundant if edit mode is only possible for 'me', but good for safety.
+      // We assume if save button is visible, we were editing 'me'.
+      setProfile(me, me); // Reset the display for 'me'
     }
     showScreen('#chat-screen');
   };
 
   $('#edit-profile-btn').addEventListener('click', () => {
-    if (document.getElementById('profile-screen').querySelector('#edit-profile-name')) {
-      return; // Already in edit mode
-    }
-
+    // This button is only visible if it's own profile, so currentActiveUser is 'me'
     const profileNameEl = $('#profile-name');
     const profileBioEl = $('#profile-bio');
 
-    const currentName = me.name;
+    // Check if already in edit mode by looking for one of the inputs
+    if ($('#edit-profile-name')) {
+        return;
+    }
+
+    const currentName = me.name; // 'me' is the user whose profile is being edited
     const currentBio = me.bio || '';
 
     profileNameEl.innerHTML = `<input type="text" id="edit-profile-name" value="${currentName}" class="profile-edit-input">`;
     profileBioEl.innerHTML = `<textarea id="edit-profile-bio" class="profile-edit-textarea">${currentBio}</textarea>`;
 
+    profileNameEl.classList.add('hidden'); // Hide the original text element
+    profileBioEl.classList.add('hidden');   // Hide the original text element
+
+
     $('#edit-profile-btn').classList.add('hidden');
-    $('#export-ray-btn').classList.add('hidden'); // Hide export btn during edit
+    $('#export-ray-btn').classList.add('hidden');
     $('#save-profile-btn').classList.remove('hidden');
   });
 
-  // Placeholder for save profile and export functions
   $('#save-profile-btn').addEventListener('click', () => {
-    const newName = $('#edit-profile-name').value.trim();
-    const newBio = $('#edit-profile-bio').value.trim();
+    // This button is only visible if it's own profile, so currentActiveUser is 'me'
+    const newNameInput = $('#edit-profile-name');
+    const newBioTextarea = $('#edit-profile-bio');
+
+    if (!newNameInput || !newBioTextarea) {
+        console.error("Could not find edit input fields to save.");
+        setProfile(me, me); // Reset profile to a safe state
+        return;
+    }
+
+    const newName = newNameInput.value.trim();
+    const newBio = newBioTextarea.value.trim();
 
     if (newName) {
-      me.name = newName;
+      me.name = newName; // 'me' is the user whose profile is being saved
       me.initials = newName.slice(0, 2).toUpperCase();
     }
     me.bio = newBio;
 
-    setProfile(me); // This will redraw the profile, remove input fields, and reset buttons
+    // The setProfile function will handle removing input fields and showing text
+    setProfile(me, me); // Pass currentActiveUser (me)
   });
 
   function xorEncryptDecrypt(input, key) {
@@ -283,7 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Check if it's the current user
     if (me.profileCode && me.profileCode === searchCode) {
       alert("You found yourself! Displaying your profile.");
-      setProfile(me);
+      setProfile(me, me); // Pass currentActiveUser (me)
       showScreen('#profile-screen');
       $('#user-search-input').value = ''; // Clear input
       return;
@@ -293,10 +326,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const foundUser = chats.find(chat => chat.profileCode && chat.profileCode === searchCode);
 
     if (foundUser) {
-      loadChat(foundUser.id); // Load their chat messages
-      setProfile(foundUser);  // Set their profile details
-      showScreen('#profile-screen'); // Navigate to profile screen
-      $('#user-search-input').value = ''; // Clear input
+      loadChat(foundUser.id); // This will eventually call setProfile(foundUser, me)
+      // setProfile(foundUser, me); // Pass currentActiveUser (me) - This call is redundant if loadChat calls it
+      // showScreen('#profile-screen'); // This is also handled by loadChat -> view-profile click or message click
     } else {
       alert("User with that profile code not found.");
       $('#user-search-input').value = ''; // Clear input
