@@ -9,6 +9,10 @@ function showScreen(id) {
   requestAnimationFrame(() => screen.classList.add('active'));
 }
 function setProfile(profile) {
+  if (typeof me === 'undefined' || me === null) {
+    console.error("CRITICAL: 'me' is not defined or null when setProfile is called. Profile to view:", profile);
+    return;
+  }
   $('#profile-avatar').textContent = profile.initials;
 
   // Clear previous edit fields if any
