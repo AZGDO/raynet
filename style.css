@@ -261,3 +261,11 @@ button:focus { outline: 2px solid var(--gray-400); }
 #user-search-btn:hover {
   opacity: 0.85;
 }
+
+.empty-chat-list-message {
+  padding: 20px;
+  text-align: center;
+  color: var(--gray-400);
+  font-style: italic;
+  font-size: 0.9em; /* Slightly smaller text */
+}

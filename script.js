@@ -70,23 +70,11 @@ function setProfile(profileToDisplay, currentActiveUser) {
 document.addEventListener('DOMContentLoaded', () => {
   const E2E_MESSAGE_KEY = "raynetSecretKey"; // Fixed key for message "encryption"
 
-  const chats = [
-    { id: 'ray', name: 'Ray Adams', subtitle: 'Hey, have you seen this?', timestamp: '09:32', initials: 'RA', bio: 'Lead dev at Raynet', profileCode: 'AB-CD-EF-12-34-56' },
-    { id: 'lana', name: 'Lana Norris', subtitle: "I'll call you back.", timestamp: 'Yesterday', initials: 'LN', bio: 'Designer at Raynet', profileCode: 'ZY-XW-VU-98-76-54' }
-  ];
-  const messages = {
-    ray: [
-      { incoming: true, text: xorEncryptDecrypt('Hey there!', E2E_MESSAGE_KEY) },
-      { incoming: false, text: xorEncryptDecrypt("Hi! How's it going?", E2E_MESSAGE_KEY) },
-      { incoming: true, text: xorEncryptDecrypt('All good, thanks.', E2E_MESSAGE_KEY) }
-    ],
-    lana: [
-      { incoming: true, text: xorEncryptDecrypt("Let's talk later.", E2E_MESSAGE_KEY) },
-      { incoming: false, text: xorEncryptDecrypt('Sure, talk soon.', E2E_MESSAGE_KEY) }
-    ]
-  };
+  let chats = []; // Changed to let and emptied
+  let messages = {}; // Changed to let and emptied
+
   let me = { name: 'Guest', initials: 'GU', bio: 'Just visiting Raynet' };
-  let currentChat = 'ray';
+  let currentChat = null; // No default chat selected initially
 
   function renderChatList() {
     const chatItemsContainer = $('#chat-items-container'); // Target the new container
@@ -95,6 +83,12 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     chatItemsContainer.innerHTML = ''; // Clear only the items container
+
+    if (chats.length === 0) {
+      chatItemsContainer.innerHTML = '<p class="empty-chat-list-message">No active chats. Search for users by their code to start a conversation.</p>';
+      return; // Stop further processing if no chats
+    }
+
     chats.forEach(c => {
       const item = document.createElement('div');
       item.className = 'chat-item';
@@ -114,32 +108,54 @@ document.addEventListener('DOMContentLoaded', () => {
   function loadChat(id) {
     currentChat = id;
     document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
+
     const item = document.querySelector(`.chat-item[data-id="${id}"]`);
     if (item) item.classList.add('active');
+
     const chat = chats.find(c => c.id === id);
-    $('#chat-title').textContent = chat ? chat.name : id;
+
+    if (!id || !chat) { // If no chat is selected or found
+        $('#chat-title').textContent = 'Select a chat';
+        $('#messages').innerHTML = '<p class="empty-chat-list-message">Select a chat to view messages, or search for a new user to start a conversation.</p>';
+        $('#view-profile').classList.add('hidden'); // Hide view profile button
+        // Disable composer
+        $('#composer-input').disabled = true;
+        $('#send-btn').disabled = true;
+        return;
+    }
+
+    $('#view-profile').classList.remove('hidden'); // Show view profile button
+    $('#composer-input').disabled = false; // Enable composer
+    $('#send-btn').disabled = false;       // Enable send button
+
+    $('#chat-title').textContent = chat.name;
     $('#view-profile').onclick = () => {
-      setProfile(chat, me); // Pass currentActiveUser (me)
+      setProfile(chat, me);
       showScreen('#profile-screen');
     };
+
     const msgs = messages[id] || [];
     const msgBox = $('#messages');
     msgBox.classList.add('switching');
     setTimeout(() => msgBox.classList.remove('switching'), 300);
     msgBox.innerHTML = '';
-    msgs.forEach(m => {
-      const div = document.createElement('div');
-      div.className = 'message ' + (m.incoming ? 'incoming' : 'outgoing');
-      // Decrypt message before displaying
-      const decryptedText = xorEncryptDecrypt(m.text, E2E_MESSAGE_KEY);
-      div.textContent = decryptedText;
-      div.addEventListener('click', () => {
-        const profileOnClick = m.incoming ? chat : me;
-        setProfile(profileOnClick, me); // Pass currentActiveUser (me)
-        showScreen('#profile-screen');
-      });
-      msgBox.appendChild(div);
-    });
+
+    if (msgs.length === 0) {
+        msgBox.innerHTML = '<p class="empty-chat-list-message">No messages yet. Send a message to start the chat!</p>';
+    } else {
+        msgs.forEach(m => {
+          const div = document.createElement('div');
+          div.className = 'message ' + (m.incoming ? 'incoming' : 'outgoing');
+          const decryptedText = xorEncryptDecrypt(m.text, E2E_MESSAGE_KEY);
+          div.textContent = decryptedText;
+          div.addEventListener('click', () => {
+            const profileOnClick = m.incoming ? chat : me;
+            setProfile(profileOnClick, me);
+            showScreen('#profile-screen');
+          });
+          msgBox.appendChild(div);
+        });
+    }
   }
 
   $('#show-login').onclick = () => {
@@ -162,8 +178,10 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     me.name = $('#login-name').value || 'Me';
     me.initials = me.name.slice(0,2).toUpperCase();
+    // me.profileCode = undefined; // Explicitly no profile code for login via this mock form
     showScreen('#chat-screen');
     renderChatList();
+    // currentChat is null initially, loadChat will handle the empty state.
     loadChat(currentChat);
   });
 
@@ -174,6 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
     me.profileCode = generateProfileCode(); // Generate and store profile code
     showScreen('#chat-screen');
     renderChatList();
+    // After registration, there are no chats yet, currentChat is null.
     loadChat(currentChat);
   });
 
@@ -181,8 +200,10 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     me.name = $('#guest-name').value || 'Guest';
     me.initials = me.name.slice(0,2).toUpperCase();
+    // me.profileCode = undefined; // Guests don't have profile codes
     showScreen('#chat-screen');
     renderChatList();
+    // currentChat is null initially, loadChat will handle the empty state.
     loadChat(currentChat);
   });
 
