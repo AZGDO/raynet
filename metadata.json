@@ -1,0 +1,5 @@
+{
+  "name": "raynet",
+  "description": "Serverless P2P Encrypted Messenger. Features identity management, local persistence, and file-based backup.",
+  "requestFramePermissions": []
+}
