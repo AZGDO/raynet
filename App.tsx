@@ -2,47 +2,14 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Send, Shield, Wifi, WifiOff, ArrowRight, Link, Lock, Zap,
   Settings, Users, MessageSquare, Upload, Download, User,
-  Copy, Check, Plus, X, LogOut, Scan, QrCode
+  Copy, Check, Plus, X, LogOut, Scan, QrCode, Trash2, RefreshCw
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { TerminalButton } from './components/TerminalButton';
 import { CodeBlock } from './components/CodeBlock';
-import { UserProfile, Contact, ChatMessage, ConnectionStatus, NetworkMessage } from './types';
-
-// --- Constants & Utils ---
-
-const STUN_SERVERS = {
-  iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-};
-
-const generateId = () => crypto.randomUUID().split('-')[0];
-const encodeData = (data: any) => btoa(JSON.stringify(data));
-const decodeData = (str: string) => {
-  try { return JSON.parse(atob(str)); } catch { return null; }
-};
-
-const waitForIceGathering = (pc: RTCPeerConnection) => {
-  return new Promise<void>(resolve => {
-    if (pc.iceGatheringState === 'complete') {
-      resolve();
-      return;
-    }
-
-    const check = () => {
-      if (pc.iceGatheringState === 'complete') {
-        pc.removeEventListener('icegatheringstatechange', check);
-        resolve();
-      }
-    };
-
-    pc.addEventListener('icegatheringstatechange', check);
-    setTimeout(() => {
-      pc.removeEventListener('icegatheringstatechange', check);
-      resolve();
-    }, 5000);
-  });
-};
+import { UserProfile, Contact, ChatMessage, ConnectionStatus, NetworkMessage, MessageStatus } from './types';
+import { useNetwork } from './hooks/useNetwork';
 
 // --- Components ---
 
@@ -56,7 +23,7 @@ const QRScanner = ({ onScan, onClose }: { onScan: (data: string) => void, onClos
 
     scanner.render((decodedText) => {
       onScan(decodedText);
-      // scanner.clear() is handled by unmount or we can do it here if we want to stop immediately
+      scanner.clear().catch(console.error);
     }, (error) => {
       // ignore errors
     });
@@ -111,20 +78,90 @@ export default function App() {
   const [chatHistory, setChatHistory] = useLocalStorage<Record<string, ChatMessage[]>>('raynet_history', {});
 
   // Session State
-  const [view, setView] = useState<'onboarding' | 'contacts' | 'chat' | 'connect' | 'settings'>('contacts');
+  const [view, setView] = useState<'onboarding' | 'contacts' | 'chat' | 'add-contact' | 'settings'>('contacts');
   const [activePeerId, setActivePeerId] = useState<string | null>(null);
-  const [status, setStatus] = useState<ConnectionStatus>('idle');
   const [showScanner, setShowScanner] = useState(false);
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
 
-  // WebRTC State
-  const [connectionMode, setConnectionMode] = useState<'host' | 'join' | null>(null);
-  const [sdpData, setSdpData] = useState<{ local: string; remote: string }>({ local: '', remote: '' });
-
-  // Refs
-  const pc = useRef<RTCPeerConnection | null>(null);
-  const dc = useRef<RTCDataChannel | null>(null);
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // --- Network Logic ---
+
+  const handleMessageReceived = useCallback((peerId: string, msg: NetworkMessage) => {
+    if (msg.type === 'CHAT') {
+      const chatMsg: ChatMessage = {
+        id: generateId(),
+        senderId: peerId,
+        content: msg.payload.content,
+        timestamp: msg.payload.timestamp,
+        type: 'text',
+        status: 'read' // If we received it, we read it (simplified)
+      };
+      setChatHistory(prev => ({
+        ...prev,
+        [peerId]: [...(prev[peerId] || []), chatMsg]
+      }));
+    } else if (msg.type === 'ACK') {
+      // Update message status to delivered
+      setChatHistory(prev => {
+        const history = prev[peerId] || [];
+        return {
+          ...prev,
+          [peerId]: history.map(m => m.id === msg.payload.messageId ? { ...m, status: 'delivered' } : m)
+        };
+      });
+    }
+  }, [setChatHistory]);
+
+  const handlePeerConnected = useCallback((peerId: string) => {
+    setContacts(prev => ({
+      ...prev,
+      [peerId]: { ...prev[peerId], lastConnected: Date.now() }
+    }));
+  }, [setContacts]);
+
+  const handlePeerDisconnected = useCallback((peerId: string) => {
+    // Optional: Update UI to show disconnected
+  }, []);
+
+  const handleHandshakeReceived = useCallback((peer: UserProfile, roomId: string) => {
+    // Check if we already have this contact
+    setContacts(prev => {
+      if (prev[peer.id]) return prev; // Already have them
+
+      // New contact!
+      const newContact: Contact = {
+        id: peer.id,
+        username: peer.username,
+        bio: peer.bio,
+        roomId: roomId,
+        lastConnected: Date.now()
+      };
+
+      // If we are currently in "add-contact" view, switch to chat
+      // We can't easily check "view" here due to closure, but we can check if we are activePeerId
+      // Actually, let's just alert and switch if we can, or let the user navigate.
+      // Better: If we generated the invite, we are waiting.
+
+      return { ...prev, [peer.id]: newContact };
+    });
+
+    // We can also auto-switch to chat if we were waiting
+    // But we need to be careful not to disrupt if user is doing something else.
+    // For now, just adding them is enough. The UI will show them in contacts.
+    // We can show a notification.
+    // alert(`NEW_UPLINK_ESTABLISHED: ${peer.username}`); // Alert is annoying, maybe just let UI update
+  }, [setContacts]);
+
+  const { status: peerStatus, sendMessage: netSendMessage, createRoomId, joinTemporaryRoom } = useNetwork({
+    profile,
+    contacts,
+    onMessageReceived: handleMessageReceived,
+    onPeerConnected: handlePeerConnected,
+    onPeerDisconnected: handlePeerDisconnected,
+    onHandshakeReceived: handleHandshakeReceived
+  });
 
   // --- Lifecycle ---
 
@@ -136,196 +173,90 @@ export default function App() {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatHistory, activePeerId, view]);
 
-  // --- WebRTC Logic ---
-
-  const cleanupConnection = () => {
-    if (dc.current) dc.current.close();
-    if (pc.current) pc.current.close();
-    pc.current = null;
-    dc.current = null;
-    setStatus('idle');
-    setConnectionMode(null);
-    setSdpData({ local: '', remote: '' });
-    setShowScanner(false);
-  };
-
-  const setupPeerConnection = useCallback(() => {
-    if (pc.current) pc.current.close();
-    const newPc = new RTCPeerConnection(STUN_SERVERS);
-
-    newPc.oniceconnectionstatechange = () => {
-      if (newPc.iceConnectionState === 'disconnected' || newPc.iceConnectionState === 'failed') {
-        setStatus('disconnected');
-        if (activePeerId) addSystemMessage(activePeerId, 'UPLINK_LOST');
-      } else if (newPc.iceConnectionState === 'connected') {
-        setStatus('connected');
-      }
-    };
-
-    pc.current = newPc;
-    return newPc;
-  }, [activePeerId]);
-
-  const handleDataChannel = (channel: RTCDataChannel) => {
-    channel.onopen = () => {
-      setStatus('connected');
-      // Send Handshake
-      if (profile) {
-        const msg: NetworkMessage = { type: 'HANDSHAKE', payload: profile };
-        channel.send(JSON.stringify(msg));
-      }
-    };
-
-    channel.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data) as NetworkMessage;
-
-        if (msg.type === 'HANDSHAKE') {
-          const peer = msg.payload;
-          // Save contact
-          setContacts(prev => ({
-            ...prev,
-            [peer.id]: {
-              id: peer.id,
-              username: peer.username,
-              bio: peer.bio,
-              lastConnected: Date.now()
-            }
-          }));
-          setActivePeerId(peer.id);
-          setView('chat');
-          addSystemMessage(peer.id, `SECURE_UPLINK_ESTABLISHED: ${peer.username}`);
-        } else if (msg.type === 'CHAT') {
-          if (!activePeerId) {
-            // Fallback if handshake hasn't processed fully or race condition
-            // In a real app, we'd handle this better.
-          }
-          addMessage(activePeerId || 'unknown', msg.payload.content, 'peer');
-        }
-      } catch (e) {
-        console.error('Failed to parse message', e);
-      }
-    };
-
-    dc.current = channel;
-  };
-
   // --- Actions ---
 
-  const addMessage = (peerId: string, content: string, sender: 'me' | 'peer' | 'system') => {
+  const sendMessage = (text: string) => {
+    if (!activePeerId) return;
+
+    const result = netSendMessage(activePeerId, text);
+    if (!result) return; // Failed to send (no room?)
+
     const msg: ChatMessage = {
-      id: crypto.randomUUID(),
-      senderId: sender === 'me' ? 'me' : sender === 'system' ? 'system' : peerId,
-      content,
+      id: result.id,
+      senderId: 'me',
+      content: text,
       timestamp: Date.now(),
-      type: sender === 'system' ? 'system' : 'text'
+      type: 'text',
+      status: result.status as MessageStatus
     };
 
     setChatHistory(prev => ({
       ...prev,
-      [peerId]: [...(prev[peerId] || []), msg]
+      [activePeerId]: [...(prev[activePeerId] || []), msg]
     }));
   };
 
-  const addSystemMessage = (peerId: string, content: string) => {
-    addMessage(peerId, content, 'system');
+  const generateInvite = () => {
+    const roomId = createRoomId();
+    const invite = JSON.stringify({ type: 'invite', roomId, host: profile });
+    setInviteCode(invite);
+    // Host joins the room immediately to listen for scanner
+    joinTemporaryRoom(roomId);
   };
 
-  const sendMessage = (text: string) => {
-    if (!activePeerId || !dc.current || dc.current.readyState !== 'open') return;
-
-    const payload = { id: crypto.randomUUID(), content: text, timestamp: Date.now() };
-    const msg: NetworkMessage = { type: 'CHAT', payload };
-
-    dc.current.send(JSON.stringify(msg));
-    addMessage(activePeerId, text, 'me');
-
-    // Update last seen
-    setContacts(prev => ({
-      ...prev,
-      [activePeerId]: { ...prev[activePeerId], lastConnected: Date.now() }
-    }));
-  };
-
-  const hostSession = async () => {
-    cleanupConnection();
-    setConnectionMode('host');
-    setStatus('host-generating');
-
-    const connection = setupPeerConnection();
-    const channel = connection.createDataChannel("raynet");
-    handleDataChannel(channel);
-
-    try {
-      const offer = await connection.createOffer();
-      await connection.setLocalDescription(offer);
-
-      // Wait for ICE
-      await waitForIceGathering(connection);
-
-      setSdpData(prev => ({ ...prev, local: encodeData(connection.localDescription) }));
-      setStatus('host-waiting');
-    } catch (e) {
-      console.error(e);
-      setStatus('failed');
+  const generateId = () => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
     }
-  };
-
-  const handleHostFinalize = async () => {
-    if (!sdpData.remote || !pc.current) return;
-    const answer = decodeData(sdpData.remote);
-    if (answer) {
-      await pc.current.setRemoteDescription(answer);
-    }
-  };
-
-  const joinSession = async () => {
-    cleanupConnection();
-    setConnectionMode('join');
-    setStatus('join-input');
-  };
-
-  const handleJoinGenerate = async () => {
-    if (!sdpData.remote) return;
-    const offer = decodeData(sdpData.remote);
-    if (!offer) return;
-
-    setStatus('join-generating');
-    const connection = setupPeerConnection();
-
-    connection.ondatachannel = (e) => handleDataChannel(e.channel);
-
-    try {
-      await connection.setRemoteDescription(offer);
-      const answer = await connection.createAnswer();
-      await connection.setLocalDescription(answer);
-
-      // Wait for ICE
-      await waitForIceGathering(connection);
-
-      setSdpData(prev => ({ ...prev, local: encodeData(connection.localDescription) }));
-    } catch (e) {
-      console.error(e);
-      setStatus('failed');
-    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
   };
 
   const handleScan = (data: string) => {
     setShowScanner(false);
-    setSdpData(prev => ({ ...prev, remote: data }));
-    // Auto-trigger next steps if possible
-    if (connectionMode === 'join' && status === 'join-input') {
-      // We just scanned the host's offer, wait for user to click generate or auto-click?
-      // Let's just set the data for now, user can click generate.
-      // Actually, better UX:
-      // If we are joining, we scanned the offer.
+    try {
+      const invite = JSON.parse(data);
+      if (invite.type === 'invite' && invite.roomId && invite.host) {
+        // Add contact
+        const newContact: Contact = {
+          id: invite.host.id,
+          username: invite.host.username,
+          bio: invite.host.bio,
+          roomId: invite.roomId,
+          lastConnected: Date.now()
+        };
+        setContacts(prev => ({ ...prev, [newContact.id]: newContact }));
+        setActivePeerId(newContact.id);
+        setView('chat');
+        alert(`CONTACT_ADDED: ${newContact.username}`);
+      } else {
+        alert('INVALID_INVITE_CODE');
+      }
+    } catch (e) {
+      alert('SCAN_ERROR');
+    }
+  };
+
+  const deleteContact = (id: string) => {
+    if (confirm('CONFIRM_DELETION?')) {
+      setContacts(prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      if (activePeerId === id) {
+        setActivePeerId(null);
+        setView('contacts');
+      }
     }
   };
 
   // --- File Operations ---
 
   const exportData = () => {
-    const data = { profile, contacts, chatHistory, version: 1, exportedAt: Date.now() };
+    const data = { profile, contacts, chatHistory, version: 2, exportedAt: Date.now() };
     const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -373,7 +304,7 @@ export default function App() {
               const username = formData.get('username') as string;
               const bio = formData.get('bio') as string;
               if (username) {
-                setProfile({ id: generateId(), username, bio, created: Date.now() });
+                setProfile({ id: generateId().split('-')[0], username, bio, created: Date.now() });
                 setView('contacts');
               }
             }} className="space-y-4">
@@ -410,9 +341,9 @@ export default function App() {
               <Users size={20} />
               <span className="hidden md:block font-mono text-sm">CONTACTS</span>
             </button>
-            <button onClick={() => setView('connect')} className={`w-full flex items-center gap-3 p-3 rounded hover:bg-ray-900 transition-colors ${view === 'connect' ? 'bg-ray-900 text-ray-500' : 'text-slate-400'}`}>
-              <Wifi size={20} />
-              <span className="hidden md:block font-mono text-sm">NEW_UPLINK</span>
+            <button onClick={() => { setView('add-contact'); setInviteCode(null); }} className={`w-full flex items-center gap-3 p-3 rounded hover:bg-ray-900 transition-colors ${view === 'add-contact' ? 'bg-ray-900 text-ray-500' : 'text-slate-400'}`}>
+              <Plus size={20} />
+              <span className="hidden md:block font-mono text-sm">ADD_CONTACT</span>
             </button>
             <button onClick={() => setView('settings')} className={`w-full flex items-center gap-3 p-3 rounded hover:bg-ray-900 transition-colors ${view === 'settings' ? 'bg-ray-900 text-ray-500' : 'text-slate-400'}`}>
               <Settings size={20} />
@@ -434,18 +365,17 @@ export default function App() {
         <header className="h-16 border-b border-ray-900 flex items-center justify-between px-6 bg-black/50 backdrop-blur">
           <h2 className="font-display font-bold text-lg uppercase tracking-widest">
             {view === 'contacts' && 'DIRECTORY'}
-            {view === 'connect' && 'ESTABLISH_UPLINK'}
+            {view === 'add-contact' && 'SECURE_HANDSHAKE'}
             {view === 'settings' && 'SYSTEM_CONFIG'}
             {view === 'chat' && (contacts[activePeerId || '']?.username || 'UNKNOWN_PEER')}
           </h2>
 
-          {view === 'chat' && (
+          {view === 'chat' && activePeerId && (
             <div className="flex items-center gap-2 text-xs font-mono">
-              <div className={`w-2 h-2 rounded-full ${status === 'connected' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]' : 'bg-red-500'}`} />
-              <span className={status === 'connected' ? 'text-green-500' : 'text-red-500'}>{status === 'connected' ? 'SECURE' : 'OFFLINE'}</span>
-              {status === 'disconnected' && (
-                <button onClick={() => setView('connect')} className="ml-2 underline hover:text-white">RECONNECT</button>
-              )}
+              <div className={`w-2 h-2 rounded-full ${peerStatus[activePeerId] === 'connected' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]' : 'bg-red-500'}`} />
+              <span className={peerStatus[activePeerId] === 'connected' ? 'text-green-500' : 'text-red-500'}>
+                {peerStatus[activePeerId] === 'connected' ? 'SECURE_LINK' : 'SEARCHING...'}
+              </span>
             </div>
           )}
         </header>
@@ -458,18 +388,26 @@ export default function App() {
                 <div className="col-span-full flex flex-col items-center justify-center h-64 text-slate-600">
                   <Users size={48} strokeWidth={1} className="mb-4" />
                   <p className="font-mono text-sm">NO_CONTACTS_FOUND</p>
-                  <button onClick={() => setView('connect')} className="mt-4 text-ray-500 hover:text-ray-400 font-mono text-xs underline">INITIALIZE_NEW_CONNECTION</button>
+                  <button onClick={() => setView('add-contact')} className="mt-4 text-ray-500 hover:text-ray-400 font-mono text-xs underline">INITIALIZE_NEW_CONNECTION</button>
                 </div>
               ) : (
                 Object.values(contacts).map(contact => (
                   <div key={contact.id}
                     onClick={() => { setActivePeerId(contact.id); setView('chat'); }}
-                    className="bg-ray-900/20 border border-ray-800 hover:border-ray-500/50 p-4 cursor-pointer transition-all group">
+                    className="bg-ray-900/20 border border-ray-800 hover:border-ray-500/50 p-4 cursor-pointer transition-all group relative">
                     <div className="flex justify-between items-start mb-2">
                       <span className="font-bold text-white group-hover:text-ray-400 transition-colors">{contact.username}</span>
-                      <span className="text-[10px] font-mono text-slate-600">{new Date(contact.lastConnected).toLocaleDateString()}</span>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${peerStatus[contact.id] === 'connected' ? 'bg-green-500' : 'bg-slate-700'}`} />
+                      </div>
                     </div>
                     <p className="text-xs text-slate-500 font-mono truncate">{contact.bio || 'NO_BIO'}</p>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); deleteContact(contact.id); }}
+                      className="absolute bottom-2 right-2 text-slate-700 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 ))
               )}
@@ -516,121 +454,36 @@ export default function App() {
             </div>
           )}
 
-          {view === 'connect' && (
+          {view === 'add-contact' && (
             <div className="p-6 max-w-3xl mx-auto">
-              {!connectionMode ? (
-                <div className="grid md:grid-cols-2 gap-8 mt-12">
-                  <button onClick={hostSession} className="group bg-ray-900/20 border border-ray-800 hover:bg-ray-900/40 hover:border-ray-500 p-8 text-left transition-all">
-                    <div className="w-12 h-12 bg-ray-900 rounded-full flex items-center justify-center mb-6 group-hover:shadow-[0_0_15px_rgba(239,68,68,0.3)]">
-                      <Wifi size={24} className="text-ray-500" />
-                    </div>
-                    <h3 className="text-xl font-bold text-white mb-2">HOST_UPLINK</h3>
-                    <p className="text-sm text-slate-500 font-mono">Generate a secure frequency for a peer to join.</p>
-                  </button>
-                  <button onClick={joinSession} className="group bg-black border border-slate-800 hover:bg-slate-900 hover:border-slate-600 p-8 text-left transition-all">
-                    <div className="w-12 h-12 bg-slate-900 rounded-full flex items-center justify-center mb-6">
-                      <Link size={24} className="text-slate-400" />
-                    </div>
-                    <h3 className="text-xl font-bold text-slate-200 mb-2">JOIN_UPLINK</h3>
-                    <p className="text-sm text-slate-500 font-mono">Connect using a frequency code provided by host.</p>
-                  </button>
-                </div>
-              ) : (
-                <div className="bg-black border border-ray-900 p-6 relative">
-                  <button onClick={cleanupConnection} className="absolute top-4 right-4 text-slate-600 hover:text-ray-500"><X size={20} /></button>
+              <div className="grid md:grid-cols-2 gap-8 mt-12">
+                <div className="space-y-6">
+                  <div className="bg-ray-900/20 border border-ray-800 p-6">
+                    <h3 className="text-white font-bold mb-4 flex items-center gap-2"><QrCode size={20} /> SHARE_IDENTITY</h3>
+                    <p className="text-slate-500 text-sm mb-6">Generate a secure invite code for a peer to scan.</p>
 
-                  {/* Stepper UI */}
-                  <div className="flex items-center justify-center mb-8 space-x-4">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${sdpData.local ? 'bg-ray-500 text-black' : 'bg-ray-900 text-white'}`}>1</div>
-                    <div className="w-12 h-px bg-ray-900"></div>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${sdpData.remote ? 'bg-ray-500 text-black' : 'bg-ray-900 text-white'}`}>2</div>
+                    {!inviteCode ? (
+                      <TerminalButton fullWidth onClick={generateInvite}>GENERATE_INVITE</TerminalButton>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="flex justify-center bg-white p-4 rounded-lg w-fit mx-auto">
+                          <QRCodeSVG value={inviteCode} size={200} />
+                        </div>
+                        <p className="text-center text-xs text-ray-500 font-mono">SCAN_TO_CONNECT</p>
+                        <TerminalButton fullWidth variant="secondary" onClick={() => setInviteCode(null)}>RESET</TerminalButton>
+                      </div>
+                    )}
                   </div>
-
-                  {connectionMode === 'host' ? (
-                    <div className="space-y-6">
-                      <div>
-                        <h3 className="text-ray-400 text-sm font-mono mb-2">STEP 1: SHARE FREQUENCY</h3>
-                        {status === 'host-generating' ? (
-                          <div className="h-24 flex items-center justify-center text-ray-500 animate-pulse font-mono text-xs">GENERATING_KEYS...</div>
-                        ) : (
-                          <div className="space-y-4">
-                            <div className="flex justify-center bg-white p-4 rounded-lg w-fit mx-auto">
-                              <QRCodeSVG value={sdpData.local} size={200} />
-                            </div>
-                            <CodeBlock label="YOUR_OFFER" value={sdpData.local} readOnly />
-                          </div>
-                        )}
-                      </div>
-                      {status === 'host-waiting' && (
-                        <div className="pt-6 border-t border-ray-900">
-                          <h3 className="text-ray-400 text-sm font-mono mb-2">STEP 2: INPUT PEER RESPONSE</h3>
-                          <div className="mb-4">
-                            <TerminalButton fullWidth icon={Scan} onClick={() => setShowScanner(true)}>SCAN_PEER_RESPONSE</TerminalButton>
-                          </div>
-                          <div className="relative">
-                            <div className="absolute inset-0 flex items-center">
-                              <div className="w-full border-t border-ray-900"></div>
-                            </div>
-                            <div className="relative flex justify-center text-xs uppercase">
-                              <span className="bg-black px-2 text-slate-500">OR_MANUAL_ENTRY</span>
-                            </div>
-                          </div>
-                          <CodeBlock
-                            label="PEER_ANSWER"
-                            value={sdpData.remote}
-                            onChange={(v) => setSdpData(p => ({ ...p, remote: v }))}
-                            placeholder="PASTE_RESPONSE_HERE"
-                          />
-                          <div className="mt-4">
-                            <TerminalButton fullWidth onClick={handleHostFinalize} disabled={!sdpData.remote}>ESTABLISH_LINK</TerminalButton>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="space-y-6">
-                      <div>
-                        <h3 className="text-ray-400 text-sm font-mono mb-2">STEP 1: INPUT HOST FREQUENCY</h3>
-                        <div className="mb-4">
-                          <TerminalButton fullWidth icon={Scan} onClick={() => setShowScanner(true)}>SCAN_HOST_OFFER</TerminalButton>
-                        </div>
-                        <div className="relative">
-                          <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-ray-900"></div>
-                          </div>
-                          <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-black px-2 text-slate-500">OR_MANUAL_ENTRY</span>
-                          </div>
-                        </div>
-                        <CodeBlock
-                          label="HOST_OFFER"
-                          value={sdpData.remote}
-                          onChange={(v) => setSdpData(p => ({ ...p, remote: v }))}
-                          placeholder="PASTE_OFFER_HERE"
-                        />
-                        <div className="mt-2">
-                          <TerminalButton fullWidth onClick={handleJoinGenerate} disabled={!sdpData.remote || status === 'join-generating'}>
-                            {status === 'join-generating' ? 'COMPUTING...' : 'GENERATE_RESPONSE'}
-                          </TerminalButton>
-                        </div>
-                      </div>
-                      {sdpData.local && (
-                        <div className="pt-6 border-t border-ray-900">
-                          <h3 className="text-ray-400 text-sm font-mono mb-2">STEP 2: SHARE RESPONSE</h3>
-                          <div className="flex justify-center bg-white p-4 rounded-lg w-fit mx-auto mb-4">
-                            <QRCodeSVG value={sdpData.local} size={200} />
-                          </div>
-                          <CodeBlock label="YOUR_ANSWER" value={sdpData.local} readOnly />
-                          <div className="mt-4 p-3 bg-ray-900/50 border border-ray-800 text-xs text-ray-400 flex gap-2">
-                            <Lock size={14} className="shrink-0 mt-0.5" />
-                            <span>WAITING FOR HOST TO CONFIRM...</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
-              )}
+
+                <div className="space-y-6">
+                  <div className="bg-black border border-slate-800 p-6">
+                    <h3 className="text-white font-bold mb-4 flex items-center gap-2"><Scan size={20} /> SCAN_IDENTITY</h3>
+                    <p className="text-slate-500 text-sm mb-6">Scan a peer's invite code to establish a secure link.</p>
+                    <TerminalButton fullWidth icon={Scan} onClick={() => setShowScanner(true)}>ACTIVATE_SCANNER</TerminalButton>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -642,9 +495,18 @@ export default function App() {
                     {msg.senderId === 'system' ? (
                       <span className="text-[10px] text-ray-500 font-mono py-1 px-2 border border-ray-900 bg-black/50">{msg.content}</span>
                     ) : (
-                      <div className={`max-w-[80%] ${msg.senderId === 'me' ? 'bg-ray-900/80 border border-ray-800 text-slate-200' : 'bg-black border border-slate-800 text-slate-300'} p-3 rounded-sm`}>
+                      <div className={`max-w-[80%] ${msg.senderId === 'me' ? 'bg-ray-900/80 border border-ray-800 text-slate-200' : 'bg-black border border-slate-800 text-slate-300'} p-3 rounded-sm relative group`}>
                         <p className="text-sm font-mono whitespace-pre-wrap break-words">{msg.content}</p>
-                        <div className="text-[10px] text-slate-600 mt-1 text-right opacity-70">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                        <div className="flex items-center justify-end gap-1 mt-1 opacity-70">
+                          <span className="text-[10px] text-slate-600">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          {msg.senderId === 'me' && (
+                            <span className="text-ray-500">
+                              {msg.status === 'pending' && <RefreshCw size={10} className="animate-spin" />}
+                              {msg.status === 'sent' && <Check size={10} />}
+                              {msg.status === 'delivered' && <div className="flex"><Check size={10} /><Check size={10} className="-ml-1" /></div>}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -658,11 +520,10 @@ export default function App() {
                 <input
                   name="text"
                   autoComplete="off"
-                  disabled={status !== 'connected'}
-                  placeholder={status === 'connected' ? "TRANSMIT_DATA..." : "UPLINK_OFFLINE"}
-                  className="flex-1 bg-ray-950 border border-ray-900 p-3 text-white font-mono focus:border-ray-500 outline-none disabled:opacity-50"
+                  placeholder="TRANSMIT_DATA..."
+                  className="flex-1 bg-ray-950 border border-ray-900 p-3 text-white font-mono focus:border-ray-500 outline-none"
                 />
-                <TerminalButton type="submit" disabled={status !== 'connected'}>
+                <TerminalButton type="submit">
                   <Send size={18} />
                 </TerminalButton>
               </form>

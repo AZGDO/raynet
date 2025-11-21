@@ -9,8 +9,11 @@ export interface Contact {
   id: string;
   username: string;
   bio: string;
+  roomId: string; // Unique room ID for this pair
   lastConnected: number;
 }
+
+export type MessageStatus = 'pending' | 'sent' | 'delivered' | 'read';
 
 export interface ChatMessage {
   id: string;
@@ -18,6 +21,7 @@ export interface ChatMessage {
   content: string;
   timestamp: number;
   type: 'text' | 'system';
+  status?: MessageStatus;
 }
 
 export interface ChatSession {
@@ -26,17 +30,15 @@ export interface ChatSession {
   unreadCount: number;
 }
 
-// Data sent over WebRTC
-export type NetworkMessage = 
+// Data sent over WebRTC (Trystero)
+export type NetworkMessage =
   | { type: 'HANDSHAKE'; payload: UserProfile }
-  | { type: 'CHAT'; payload: { id: string; content: string; timestamp: number } };
+  | { type: 'CHAT'; payload: { id: string; content: string; timestamp: number } }
+  | { type: 'ACK'; payload: { messageId: string } };
 
-export type ConnectionStatus = 
-  | 'idle' 
-  | 'host-generating' 
-  | 'host-waiting' 
-  | 'join-input' 
-  | 'join-generating' 
-  | 'connected' 
+export type ConnectionStatus =
+  | 'idle'
+  | 'connecting'
+  | 'connected'
   | 'disconnected'
   | 'failed';

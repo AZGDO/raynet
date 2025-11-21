@@ -13,7 +13,8 @@
     "lucide-react": "^0.554.0",
     "qrcode.react": "^4.2.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "trystero": "^0.22.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
